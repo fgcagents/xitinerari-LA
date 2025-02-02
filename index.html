@@ -66,6 +66,7 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
+			width: 600px;
             display: none;
         }
 
@@ -279,13 +280,15 @@
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
-                const response = await fetch('itinerari_json.json');
+                const response = await fetch('itinerari_csv.csv');
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                const csvText = await response.text();
                 
-                if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
-                }
+                data = Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true
+                }).data;
                 
-                data = await response.json();
             } catch (error) {
                 showError(`Error carregant les dades: ${error.message}`);
             } finally {
