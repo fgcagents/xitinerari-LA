@@ -1,4 +1,97 @@
-tr:nth-child(even) {
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cerca de Trens</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #f9f9f9;
+            --error-color: #e74c3c;
+            --success-color: #2ecc71;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--primary-color);
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+        }
+
+        label {
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .result-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-container.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
             background-color: #f8f9fa;
         }
 
@@ -49,3 +142,184 @@ tr:nth-child(even) {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Cerca de Trens</h1>
+    
+    <div class="search-container">
+        <div class="form-group">
+            <label for="tren">Tren</label>
+            <input type="text" id="tren" placeholder="Cerca per tren...">
+        </div>
+
+        <div class="form-group">
+            <label for="linia">Línia</label>
+            <input type="text" id="linia" placeholder="Cerca per línia...">
+        </div>
+
+        <div class="form-group">
+            <label for="estacio">Estació</label>
+            <input type="text" id="estacio" placeholder="Cerca per estació...">
+        </div>
+
+        <div class="form-group">
+            <label for="hora-desde">Hora Des de</label>
+            <input type="text" id="hora-desde" placeholder="hh:mm">
+        </div>
+
+        <div class="form-group">
+            <label for="hora-fins">Hora Fins</label>
+            <input type="text" id="hora-fins" placeholder="hh:mm">
+        </div>
+
+        <button class="clear-filters" id="clearFilters">Netejar filtres</button>
+    </div>
+
+    <div class="loading" id="loading">Carregant...</div>
+    <div class="error-message" id="errorMessage"></div>
+    
+    <div class="result-container" id="resultContainer">
+        <table id="resultats">
+            <thead>
+                <tr>
+                    <th>Tren</th>
+                    <th>Línia</th>
+                    <th>Estació</th>
+                    <th>Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="no-results">
+                    <td colspan="4">Introdueix algun criteri de cerca.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Aquí ve el codi JavaScript adaptat per carregar el CSV i gestionar la cerca
+		        let data = [];
+        let filterTimeout;
+        const DEBOUNCE_DELAY = 300;
+        
+        const elements = {
+            tren: document.getElementById('tren'),
+            linia: document.getElementById('linia'),
+            estacio: document.getElementById('estacio'),
+            horaDesde: document.getElementById('hora-desde'),
+            horaFins: document.getElementById('hora-fins'),
+            resultContainer: document.getElementById('resultContainer'),
+            loading: document.getElementById('loading'),
+            errorMessage: document.getElementById('errorMessage'),
+            clearFilters: document.getElementById('clearFilters'),
+            resultats: document.getElementById('resultats')
+        };
+        
+        async function loadData() {
+            try {
+                elements.loading.classList.add('visible');
+                const response = await fetch('itinerari_csv.csv');
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                const csvText = await response.text();
+                
+                data = Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true
+                }).data;
+                
+            } catch (error) {
+                showError(`Error carregant les dades: ${error.message}`);
+            } finally {
+                elements.loading.classList.remove('visible');
+            }
+        }
+        
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+            setTimeout(() => { elements.errorMessage.style.display = 'none'; }, 5000);
+        }
+        
+        function parseHora(hora) {
+            const match = hora.match(/(\d{1,2}):(\d{2})/);
+            return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : null;
+        }
+        
+        function debounce(func, delay) {
+            return function executedFunction(...args) {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+        
+        function clearFilters() {
+            elements.tren.value = '';
+            elements.linia.value = '';
+            elements.estacio.value = '';
+            elements.horaDesde.value = '';
+            elements.horaFins.value = '';
+            elements.resultContainer.style.display = 'none';
+        }
+        
+        function filterData() {
+            const filters = {
+                tren: elements.tren.value.toLowerCase(),
+                linia: elements.linia.value.toLowerCase(),
+                estacio: elements.estacio.value.toLowerCase(),
+                horaDesde: parseHora(elements.horaDesde.value),
+                horaFins: parseHora(elements.horaFins.value)
+            };
+            
+            const filtered = data.filter(entry => {
+                const horaTren = parseHora(entry.Hora);
+                return (
+                    (!filters.tren || entry.Tren.toLowerCase().includes(filters.tren)) &&
+                    (!filters.linia || entry.Linia.toLowerCase().includes(filters.linia)) &&
+                    (!filters.estacio || entry.Estacio.toLowerCase().includes(filters.estacio)) &&
+                    (!filters.horaDesde || (horaTren && horaTren >= filters.horaDesde)) &&
+                    (!filters.horaFins || (horaTren && horaTren <= filters.horaFins))
+                );
+            });
+            
+            updateTable(filtered);
+        }
+        
+        function updateTable(filtered) {
+            const tbody = elements.resultats.querySelector('tbody');
+            const fragment = document.createDocumentFragment();
+            
+            if (filtered.length === 0) {
+                const row = document.createElement('tr');
+                row.className = 'no-results';
+                row.innerHTML = '<td colspan="4">No s\'han trobat resultats</td>';
+                fragment.appendChild(row);
+            } else {
+                filtered.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.Tren}</td>
+                        <td>${entry.Linia}</td>
+                        <td>${entry.Estacio}</td>
+                        <td>${entry.Hora}</td>
+                    `;
+                    fragment.appendChild(row);
+                });
+            }
+            
+            tbody.innerHTML = '';
+            tbody.appendChild(fragment);
+            elements.resultContainer.style.display = 'block';
+        }
+        
+        elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaDesde.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaFins.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.clearFilters.addEventListener('click', clearFilters);
+        
+        loadData();
+    </script>
+</body>
+</html>
