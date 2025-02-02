@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cerca de Trens</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        :root {
+        /* ... (tots els estils anteriors) ... */
+		:root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
             --background-color: #f9f9f9;
@@ -142,6 +142,20 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        
+        .time-range {
+            display: flex;
+            gap: 1rem;
+            width: 300px;
+        }
+
+        .time-input {
+            flex: 1;
+        }
+
+        .invalid-time {
+            border-color: var(--error-color);
+        }
     </style>
 </head>
 <body>
@@ -150,27 +164,51 @@
     <div class="search-container">
         <div class="form-group">
             <label for="tren">Tren</label>
-            <input type="text" id="tren" placeholder="Cerca per tren...">
+            <input type="text" 
+                   id="tren" 
+                   placeholder="Cerca per tren..." 
+                   aria-label="Cerca per número de tren">
         </div>
 
         <div class="form-group">
             <label for="linia">Línia</label>
-            <input type="text" id="linia" placeholder="Cerca per línia...">
+            <input type="text" 
+                   id="linia" 
+                   placeholder="Cerca per línia..." 
+                   aria-label="Cerca per línia de tren">
         </div>
 
         <div class="form-group">
             <label for="estacio">Estació</label>
-            <input type="text" id="estacio" placeholder="Cerca per estació...">
+            <input list="estacions" 
+                   id="estacio" 
+                   placeholder="Cerca per estació..." 
+                   aria-label="Cerca per estació">
+            <datalist id="estacions">
+                <option value="PE">Pl. Espanya</option>
+                <option value="MG">Magòria</option>
+                <option value="IC">Ildefons Cerdà</option>
+                <option value="EU">Europa</option>
+                <option value="GO">Gornal</option>
+                <option value="SP">Sant Josep</option>
+                <option value="LH">L'Hospitalet</option>
+            </datalist>
         </div>
 
         <div class="form-group">
-            <label for="hora-desde">Hora Des de</label>
-            <input type="text" id="hora-desde" placeholder="hh:mm">
-        </div>
-
-        <div class="form-group">
-            <label for="hora-fins">Hora Fins</label>
-            <input type="text" id="hora-fins" placeholder="hh:mm">
+            <label>Horari</label>
+            <div class="time-range">
+                <div class="time-input">
+                    <input type="time" 
+                           id="horaInici" 
+                           aria-label="Hora inici">
+                </div>
+                <div class="time-input">
+                    <input type="time" 
+                           id="horaFi" 
+                           aria-label="Hora fi">
+                </div>
+            </div>
         </div>
 
         <button class="clear-filters" id="clearFilters">Netejar filtres</button>
@@ -196,54 +234,71 @@
             </tbody>
         </table>
     </div>
-
+    
     <script>
-        // Aquí ve el codi JavaScript adaptat per carregar el CSV i gestionar la cerca
-		        let data = [];
+        let data = [];
         let filterTimeout;
+        
         const DEBOUNCE_DELAY = 300;
         
         const elements = {
             tren: document.getElementById('tren'),
             linia: document.getElementById('linia'),
             estacio: document.getElementById('estacio'),
-            horaDesde: document.getElementById('hora-desde'),
-            horaFins: document.getElementById('hora-fins'),
+            horaInici: document.getElementById('horaInici'),
+            horaFi: document.getElementById('horaFi'),
             resultContainer: document.getElementById('resultContainer'),
             loading: document.getElementById('loading'),
             errorMessage: document.getElementById('errorMessage'),
             clearFilters: document.getElementById('clearFilters'),
             resultats: document.getElementById('resultats')
         };
-        
+
+        // Funció per convertir hora del format "HH:MM" a minuts des de mitjanit
+        function timeToMinutes(timeStr) {
+            if (!timeStr) return null;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Funció per convertir hora en format "8:45" o "18:45" a minuts
+        function convertTimeToMinutes(timeStr) {
+            if (!timeStr) return null;
+            let [hours, minutes] = timeStr.split(':').map(Number);
+            
+            // Convertir format 12h a 24h si és necessari
+            if (timeStr.toLowerCase().includes('pm') && hours < 12) {
+                hours += 12;
+            } else if (timeStr.toLowerCase().includes('am') && hours === 12) {
+                hours = 0;
+            }
+            
+            return hours * 60 + minutes;
+        }
+
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
-                const response = await fetch('itinerari_csv.csv');
-                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-                const csvText = await response.text();
+                const response = await fetch('itinerari_json.json');
                 
-                data = Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true
-                }).data;
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
                 
+                data = await response.json();
             } catch (error) {
                 showError(`Error carregant les dades: ${error.message}`);
             } finally {
                 elements.loading.classList.remove('visible');
             }
         }
-        
+
         function showError(message) {
             elements.errorMessage.textContent = message;
             elements.errorMessage.style.display = 'block';
-            setTimeout(() => { elements.errorMessage.style.display = 'none'; }, 5000);
-        }
-        
-        function parseHora(hora) {
-            const match = hora.match(/(\d{1,2}):(\d{2})/);
-            return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : null;
+            setTimeout(() => {
+                elements.errorMessage.style.display = 'none';
+            }, 5000);
         }
         
         function debounce(func, delay) {
@@ -257,8 +312,8 @@
             elements.tren.value = '';
             elements.linia.value = '';
             elements.estacio.value = '';
-            elements.horaDesde.value = '';
-            elements.horaFins.value = '';
+            elements.horaInici.value = '';
+            elements.horaFi.value = '';
             elements.resultContainer.style.display = 'none';
         }
         
@@ -267,20 +322,35 @@
                 tren: elements.tren.value.toLowerCase(),
                 linia: elements.linia.value.toLowerCase(),
                 estacio: elements.estacio.value.toLowerCase(),
-                horaDesde: parseHora(elements.horaDesde.value),
-                horaFins: parseHora(elements.horaFins.value)
+                horaInici: elements.horaInici.value,
+                horaFi: elements.horaFi.value
             };
             
-            const filtered = data.filter(entry => {
-                const horaTren = parseHora(entry.Hora);
-                return (
-                    (!filters.tren || entry.Tren.toLowerCase().includes(filters.tren)) &&
-                    (!filters.linia || entry.Linia.toLowerCase().includes(filters.linia)) &&
-                    (!filters.estacio || entry.Estacio.toLowerCase().includes(filters.estacio)) &&
-                    (!filters.horaDesde || (horaTren && horaTren >= filters.horaDesde)) &&
-                    (!filters.horaFins || (horaTren && horaTren <= filters.horaFins))
-                );
-            });
+            const horaIniciMinuts = timeToMinutes(filters.horaInici);
+            const horaFiMinuts = timeToMinutes(filters.horaFi);
+            
+            const filtered = data.flatMap(item => 
+                Object.keys(item)
+                    .filter(key => key !== 'Tren' && key !== 'Linia' && item[key])
+                    .map(station => ({
+                        tren: item.Tren,
+                        linia: item.Linia,
+                        estacio: station,
+                        hora: item[station]
+                    }))
+                    .filter(entry => {
+                        const entryTimeMinutes = convertTimeToMinutes(entry.hora);
+                        const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
+                            (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
+                        
+                        return (
+                            (!filters.tren || entry.tren.toLowerCase().includes(filters.tren)) &&
+                            (!filters.linia || entry.linia.toLowerCase().includes(filters.linia)) &&
+                            (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio)) &&
+                            matchesTimeRange
+                        );
+                    })
+            );
             
             updateTable(filtered);
         }
@@ -298,10 +368,10 @@
                 filtered.forEach(entry => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${entry.Tren}</td>
-                        <td>${entry.Linia}</td>
-                        <td>${entry.Estacio}</td>
-                        <td>${entry.Hora}</td>
+                        <td>${entry.tren}</td>
+                        <td>${entry.linia}</td>
+                        <td>${entry.estacio}</td>
+                        <td>${entry.hora}</td>
                     `;
                     fragment.appendChild(row);
                 });
@@ -311,14 +381,16 @@
             tbody.appendChild(fragment);
             elements.resultContainer.style.display = 'block';
         }
-        
+
+        // Event Listeners
         elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.horaDesde.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.horaFins.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.clearFilters.addEventListener('click', clearFilters);
         
+        // Inicialitzar
         loadData();
     </script>
 </body>
