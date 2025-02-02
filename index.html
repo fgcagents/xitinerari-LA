@@ -236,6 +236,7 @@
         </table>
     </div>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         let data = [];
         let filterTimeout;
@@ -277,20 +278,41 @@
             return hours * 60 + minutes;
         }
 
+        // Función mejorada para cargar datos
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
                 const response = await fetch('itinerari_csv.csv');
+                
                 if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
                 const csvText = await response.text();
                 
-                data = Papa.parse(csvText, {
+                // Verificar que Papa Parse está disponible
+                if (typeof Papa === 'undefined') {
+                    throw new Error('Papa Parse no está cargado');
+                }
+
+                // Parsing con manejo de errores
+                const parseResult = Papa.parse(csvText, {
                     header: true,
-                    skipEmptyLines: true
-                }).data;
+                    skipEmptyLines: true,
+                    error: (error) => {
+                        console.error('Error en Parse:', error);
+                        throw error;
+                    }
+                });
+
+                if (parseResult.errors.length > 0) {
+                    console.warn('Advertencias durante el parsing:', parseResult.errors);
+                }
+
+                data = parseResult.data;
+                return data;
                 
             } catch (error) {
-                showError(`Error carregant les dades: ${error.message}`);
+                console.error('Error al cargar datos:', error);
+                elements.loading.classList.remove('visible');
+                throw error;
             } finally {
                 elements.loading.classList.remove('visible');
             }
