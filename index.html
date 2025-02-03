@@ -340,7 +340,17 @@
         function convertTimeToMinutes(timeStr) {
             if (!timeStr) return null;
             let [hours, minutes] = timeStr.split(':').map(Number);
-            
+		
+        // Convertir a minuts des de la mitjanit
+   	 let totalMinutes = hours * 60 + minutes;
+
+   	 // Si es proporciona una hora d'inici i el temps és més petit, sumar 24h per ordenar correctament
+   	 if (startTime !== null && totalMinutes < startTime) {
+      		totalMinutes += 1440; // Sumar 24h en minuts
+           }
+	
+	    return totalMinutes;
+	}
             // Convertir format 12h a 24h si és necessari
             if (timeStr.toLowerCase().includes('pm') && hours < 12) {
                 hours += 12;
@@ -412,7 +422,9 @@
         }
 
 	   function sortResultsByTime(results) {
-    		return results.sort((a, b) => {
+		const horaIniciMinuts = timeToMinutes(elements.horaInici.value) || 0; // Si no hi ha hora d'inici, assumir 0   
+    		
+		   return results.sort((a, b) => {
         	    const timeA = convertTimeToMinutes(a.hora);
         	    const timeB = convertTimeToMinutes(b.hora);
         	    return timeA - timeB;
