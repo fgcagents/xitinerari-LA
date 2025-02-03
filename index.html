@@ -427,11 +427,11 @@
                 filtered.forEach(entry => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${entry.tren}</td>
-                        <td>${entry.linia}</td>
                         <td>${entry.ad}</td>
+			<td>${entry.tren}</td>
                         <td>${entry.estacio}</td>
                         <td>${entry.hora}</td>
+			<td>${entry.linia}</td>
                     `;
                     fragment.appendChild(row);
                 });
