@@ -347,9 +347,7 @@
    	 // Si es proporciona una hora d'inici i el temps és més petit, sumar 24h per ordenar correctament
    	 if (startTime !== null && totalMinutes < startTime) {
       		totalMinutes += 1440; // Sumar 24h en minuts
-           }
-	
-	    return totalMinutes;
+        
 	}
             // Convertir format 12h a 24h si és necessari
             if (timeStr.toLowerCase().includes('pm') && hours < 12) {
