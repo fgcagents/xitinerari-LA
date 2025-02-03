@@ -292,7 +292,8 @@
         const ITEMS_PER_PAGE = 33; // Nombre d'elements per pàgina
         
         const DEBOUNCE_DELAY = 300;
-        
+        let filterTimeout; // Definir la variable filterTimeout
+
         const elements = {
             tren: document.getElementById('tren'),
             linia: document.getElementById('linia'),
