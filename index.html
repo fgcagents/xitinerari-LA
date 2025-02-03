@@ -410,6 +410,14 @@
             elements.horaFi.value = '';
             elements.resultContainer.style.display = 'none';
         }
+
+	   function sortResultsByTime(results) {
+    		return results.sort((a, b) => {
+        	    const timeA = convertTimeToMinutes(a.hora);
+        	    const timeB = convertTimeToMinutes(b.hora);
+        	    return timeA - timeB;
+    		});
+	} 
         
         function filterData() {
             currentPage = 0; // Reiniciar a la primera pàgina
@@ -449,7 +457,8 @@
                         );
                     })
             );
-            
+// Ordenar els resultats per hora de pas ascendent
+    filteredData = sortResultsByTime(filteredData);
             updateTable();
         }
         
