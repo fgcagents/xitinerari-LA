@@ -293,7 +293,8 @@
         
         const DEBOUNCE_DELAY = 300;
         let filterTimeout; // Definir la variable filterTimeout
-
+        let filteredData = []; // Guardar los datos filtrados
+        
         const elements = {
             tren: document.getElementById('tren'),
             linia: document.getElementById('linia'),
@@ -404,7 +405,7 @@
             const horaIniciMinuts = timeToMinutes(filters.horaInici);
             const horaFiMinuts = timeToMinutes(filters.horaFi);
             
-            const filtered = data.flatMap(item => 
+            filteredData = data.flatMap(item => 
                 Object.keys(item)
                     .filter(key => key !== 'Tren' && key !== 'Linia' && key !== 'A/D' && item[key])
                     .map(station => ({
@@ -429,17 +430,17 @@
                     })
             );
             
-            updateTable(filtered);
+            updateTable();
         }
         
-        function updateTable(filtered) {
+        function updateTable() {
             const tbody = elements.resultats.querySelector('tbody');
             const fragment = document.createDocumentFragment();
 
             // Calcular els elements a mostrar per a la pàgina actual
             const startIndex = currentPage * ITEMS_PER_PAGE;
             const endIndex = startIndex + ITEMS_PER_PAGE;
-            const itemsToShow = filtered.slice(startIndex, endIndex);
+            const itemsToShow = filteredData.slice(startIndex, endIndex);
 
             // Netejar la taula abans d'afegir nous elements
             tbody.innerHTML = '';
@@ -470,7 +471,7 @@
 
             // Afegir o actualitzar el botó "Carregar més" si hi ha més elements per mostrar
             const loadMoreButton = document.getElementById('loadMoreButton');
-            if (filtered.length > endIndex) {
+            if (filteredData.length > endIndex) {
                 if (!loadMoreButton) {
                     const button = document.createElement('button');
                     button.id = 'loadMoreButton';
@@ -479,7 +480,7 @@
                     button.style.marginTop = '1rem';
                     button.addEventListener('click', () => {
                         currentPage++;
-                        updateTable(filtered);
+                        updateTable();
                     });
                     elements.resultContainer.appendChild(button);
                 }
