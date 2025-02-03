@@ -337,23 +337,19 @@
         }
 
         // Funció per convertir hora en format "8:45" o "18:45" a minuts
-        function convertTimeToMinutes(timeStr) {
+        function convertTimeToMinutes(timeStr, add24Hours = false) {
             if (!timeStr) return null;
             let [hours, minutes] = timeStr.split(':').map(Number);
-		
-        // Convertir a minuts des de la mitjanit
-   	 let totalMinutes = hours * 60 + minutes;
-
-   	 // Si es proporciona una hora d'inici i el temps és més petit, sumar 24h per ordenar correctament
-   	 if (startTime !== null && totalMinutes < startTime) {
-      		totalMinutes += 1440; // Sumar 24h en minuts
-        
-	}
+            
             // Convertir format 12h a 24h si és necessari
             if (timeStr.toLowerCase().includes('pm') && hours < 12) {
                 hours += 12;
             } else if (timeStr.toLowerCase().includes('am') && hours === 12) {
                 hours = 0;
+            }
+            
+            if (add24Hours) {
+                hours += 24;
             }
             
             return hours * 60 + minutes;
@@ -420,11 +416,9 @@
         }
 
 	   function sortResultsByTime(results) {
-		const horaIniciMinuts = timeToMinutes(elements.horaInici.value) || 0; // Si no hi ha hora d'inici, assumir 0   
-    		
-		   return results.sort((a, b) => {
-        	    const timeA = convertTimeToMinutes(a.hora);
-        	    const timeB = convertTimeToMinutes(b.hora);
+    		return results.sort((a, b) => {
+        	    const timeA = convertTimeToMinutes(a.hora, a.hora < '04:00');
+        	    const timeB = convertTimeToMinutes(b.hora, b.hora < '04:00');
         	    return timeA - timeB;
     		});
 	} 
