@@ -336,14 +336,16 @@
             return hours * 60 + minutes;
         }
 
-        // Reemplazar la función convertTimeToMinutes existente
+        // Funció per convertir hora en format "8:45" o "18:45" a minuts
         function convertTimeToMinutes(timeStr) {
             if (!timeStr) return null;
             let [hours, minutes] = timeStr.split(':').map(Number);
             
-            // Si la hora está entre 00:00 y 03:59, añadir 24 horas para ordenar correctamente
-            if (hours >= 0 && hours < 4) {
-                hours += 24;
+            // Convertir format 12h a 24h si és necessari
+            if (timeStr.toLowerCase().includes('pm') && hours < 12) {
+                hours += 12;
+            } else if (timeStr.toLowerCase().includes('am') && hours === 12) {
+                hours = 0;
             }
             
             return hours * 60 + minutes;
@@ -409,14 +411,20 @@
             elements.resultContainer.style.display = 'none';
         }
 
-	   // Reemplazar la función sortResultsByTime existente
-        function sortResultsByTime(results) {
-            return results.sort((a, b) => {
-                const timeA = convertTimeToMinutes(a.hora);
-                const timeB = convertTimeToMinutes(b.hora);
-                return timeA - timeB;
-            });
-        } 
+	   function sortResultsByTime(results) {
+    		return results.sort((a, b) => {
+        	    const timeA = convertTimeToMinutes(a.hora);
+        	    const timeB = convertTimeToMinutes(b.hora);
+        	// Si un tren comienza antes de la medianoche y el otro después, ajustamos la comparación
+        	if (timeA < 720 && timeB >= 720) { // 720 minutos = 12:00 PM
+         	   return 1; // El tren que comienza antes de la medianoche va después
+       		 } else if (timeA >= 720 && timeB < 720) {
+       		     return -1; // El tren que comienza después de la medianoche va antes
+       		 } else {
+         	   return timeA - timeB; // Orden normal si ambos están en el mismo periodo
+      		  }
+    		});
+	} 
         
         function filterData() {
             currentPage = 0; // Reiniciar a la primera pàgina
@@ -443,7 +451,7 @@
                         hora: item[station]
                     }))
                     .filter(entry => {
-                        const entryTimeMinutes = convertTimeToMinutes(entry.hora,  horaIniciMinuts);
+                        const entryTimeMinutes = convertTimeToMinutes(entry.hora);
                         const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
                             (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
                         
