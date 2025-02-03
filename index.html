@@ -177,6 +177,21 @@
             border-color: var(--secondary-color);
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
+
+        #loadMoreButton {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        #loadMoreButton:hover {
+            background-color: var(--secondary-color);
+        }
     </style>
 </head>
 <body>
@@ -273,7 +288,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         let data = [];
-        let filterTimeout;
+        let currentPage = 0; // Índex de la pàgina actual
+        const ITEMS_PER_PAGE = 33; // Nombre d'elements per pàgina
         
         const DEBOUNCE_DELAY = 300;
         
@@ -374,6 +390,7 @@
         }
         
         function filterData() {
+            currentPage = 0; // Reiniciar a la primera pàgina
             const filters = {
                 tren: elements.tren.value.toLowerCase(),
                 linia: elements.linia.value.toLowerCase(),
@@ -417,29 +434,59 @@
         function updateTable(filtered) {
             const tbody = elements.resultats.querySelector('tbody');
             const fragment = document.createDocumentFragment();
-            
-            if (filtered.length === 0) {
+
+            // Calcular els elements a mostrar per a la pàgina actual
+            const startIndex = currentPage * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const itemsToShow = filtered.slice(startIndex, endIndex);
+
+            // Netejar la taula abans d'afegir nous elements
+            tbody.innerHTML = '';
+
+            if (itemsToShow.length === 0 && currentPage === 0) {
+                // Si no hi ha resultats i és la primera pàgina
                 const row = document.createElement('tr');
                 row.className = 'no-results';
                 row.innerHTML = '<td colspan="5">No s\'han trobat resultats</td>';
                 fragment.appendChild(row);
             } else {
-                filtered.forEach(entry => {
+                // Afegir els elements de la pàgina actual
+                itemsToShow.forEach(entry => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${entry.ad}</td>
-			<td>${entry.tren}</td>
+                        <td>${entry.tren}</td>
                         <td>${entry.estacio}</td>
                         <td>${entry.hora}</td>
-			<td>${entry.linia}</td>
+                        <td>${entry.linia}</td>
                     `;
                     fragment.appendChild(row);
                 });
             }
-            
-            tbody.innerHTML = '';
+
             tbody.appendChild(fragment);
             elements.resultContainer.style.display = 'block';
+
+            // Afegir o actualitzar el botó "Carregar més" si hi ha més elements per mostrar
+            const loadMoreButton = document.getElementById('loadMoreButton');
+            if (filtered.length > endIndex) {
+                if (!loadMoreButton) {
+                    const button = document.createElement('button');
+                    button.id = 'loadMoreButton';
+                    button.textContent = 'Carregar més';
+                    button.className = 'clear-filters';
+                    button.style.marginTop = '1rem';
+                    button.addEventListener('click', () => {
+                        currentPage++;
+                        updateTable(filtered);
+                    });
+                    elements.resultContainer.appendChild(button);
+                }
+            } else {
+                if (loadMoreButton) {
+                    loadMoreButton.remove(); // Eliminar el botó si no hi ha més elements
+                }
+            }
         }
 
         // Event Listeners
