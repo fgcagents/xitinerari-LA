@@ -448,7 +448,7 @@
                         hora: item[station]
                     }))
                     .filter(entry => {
-                        const entryTimeMinutes = convertTimeToMinutes(entry.hora);
+                        const entryTimeMinutes = convertTimeToMinutes(entry.hora,  horaIniciMinuts);
                         const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
                             (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
                         
