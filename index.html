@@ -270,7 +270,7 @@
     
     <div class="result-container" id="resultContainer">
         <table id="resultats">
-            <h2 id="table-title">Tots els resultats</h2>
+            <h2 id="table-title" style="text-align: center;">Resultats</h2>
 
             <thead>
                 <tr>
@@ -296,11 +296,11 @@
             const value = select.value;
     
             if (value === 'A') {
-                title.textContent = 'Resultats Ascendents';
+                title.textContent = 'Trens Ascendents';
             } else if (value === 'D') {
-                title.textContent = 'Resultats Descendents';
+                title.textContent = 'Trens Descendents';
             } else {
-                title.textContent = 'Tots els resultats';
+                title.textContent = 'Ascendents/Descendents';
             }
         }
     </script>
