@@ -355,7 +355,7 @@
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
-                const response = await fetch('itinerari_csv.csv');
+                const response = await fetch('itinerari_LA51_1_feiners_asc_desc.csv');
                 
                 if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
                 const csvText = await response.text();
