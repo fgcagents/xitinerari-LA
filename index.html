@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cerca de Trens</title>
     <style>
-        /* ... (tots els estils anteriors) ... */
-		:root {
+        :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
             --background-color: #f9f9f9;
@@ -30,12 +29,6 @@
             gap: 1rem;
             margin-bottom: 2rem;
             width: 100%;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            width: 300px;
         }
 
         label {
@@ -145,8 +138,9 @@
         
         .time-range {
             display: flex;
-            gap: 1rem;
-            width: 300px;
+            gap: 2rem;
+            width: 200px;
+			justify-content: center;
         }
 
         .time-input {
@@ -156,28 +150,68 @@
         .invalid-time {
             border-color: var(--error-color);
         }
+        .form-row {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            max-width: 100px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
     </style>
 </head>
 <body>
     <h1 style="text-align: center;">Cerca de Trens</h1>
     
     <div class="search-container">
-        <div class="form-group">
-            <label for="tren">Tren</label>
-            <input type="text" 
-                   id="tren" 
-                   placeholder="Cerca per tren..." 
-                   aria-label="Cerca per número de tren">
+        <!-- Nova fila per a Tren, Línia i A/D -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tren">Tren</label>
+                <input type="text" 
+                       id="tren" 
+                       placeholder="Cerca per tren..." 
+                       aria-label="Cerca per número de tren">
+            </div>
+
+            <div class="form-group">
+                <label for="linia">Línia</label>
+                <input type="text" 
+                       id="linia" 
+                       placeholder="Cerca per línia..." 
+                       aria-label="Cerca per línia de tren">
+            </div>
+
+            <div class="form-group">
+                <label for="ad">ASC/DES</label>
+                <select id="ad" aria-label="Selecciona Anada o Destí">
+                    <option value="">Tots</option>
+                    <option value="A">Ascendent</option>
+                    <option value="D">Descendent</option>
+                </select>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="linia">Línia</label>
-            <input type="text" 
-                   id="linia" 
-                   placeholder="Cerca per línia..." 
-                   aria-label="Cerca per línia de tren">
-        </div>
-
+        <!-- Resta del formulari (Estació i Horari) -->
         <div class="form-group">
             <label for="estacio">Estació</label>
             <input list="estacions" 
@@ -223,13 +257,14 @@
                 <tr>
                     <th>Tren</th>
                     <th>Línia</th>
+                    <th>A/D</th>
                     <th>Estació</th>
                     <th>Hora</th>
                 </tr>
             </thead>
             <tbody>
                 <tr class="no-results">
-                    <td colspan="4">Introdueix algun criteri de cerca.</td>
+                    <td colspan="5">Introdueix algun criteri de cerca.</td>
                 </tr>
             </tbody>
         </table>
@@ -245,6 +280,7 @@
         const elements = {
             tren: document.getElementById('tren'),
             linia: document.getElementById('linia'),
+            ad: document.getElementById('ad'),
             estacio: document.getElementById('estacio'),
             horaInici: document.getElementById('horaInici'),
             horaFi: document.getElementById('horaFi'),
@@ -277,7 +313,7 @@
             return hours * 60 + minutes;
         }
 
-        // Función mejorada para cargar datos
+        // Funció per carregar dades
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
@@ -286,12 +322,7 @@
                 if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
                 const csvText = await response.text();
                 
-                // Verificar que Papa Parse está disponible
-                if (typeof Papa === 'undefined') {
-                    throw new Error('Papa Parse no está cargado');
-                }
-
-                // Parsing con manejo de errores
+                // Parsing amb Papa Parse
                 const parseResult = Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
@@ -302,14 +333,14 @@
                 });
 
                 if (parseResult.errors.length > 0) {
-                    console.warn('Advertencias durante el parsing:', parseResult.errors);
+                    console.warn('Advertencies durant el parsing:', parseResult.errors);
                 }
 
                 data = parseResult.data;
                 return data;
                 
             } catch (error) {
-                console.error('Error al cargar datos:', error);
+                console.error('Error al cargar dades:', error);
                 elements.loading.classList.remove('visible');
                 throw error;
             } finally {
@@ -335,6 +366,7 @@
         function clearFilters() {
             elements.tren.value = '';
             elements.linia.value = '';
+            elements.ad.value = '';
             elements.estacio.value = '';
             elements.horaInici.value = '';
             elements.horaFi.value = '';
@@ -345,6 +377,7 @@
             const filters = {
                 tren: elements.tren.value.toLowerCase(),
                 linia: elements.linia.value.toLowerCase(),
+                ad: elements.ad.value,
                 estacio: elements.estacio.value.toLowerCase(),
                 horaInici: elements.horaInici.value,
                 horaFi: elements.horaFi.value
@@ -355,10 +388,11 @@
             
             const filtered = data.flatMap(item => 
                 Object.keys(item)
-                    .filter(key => key !== 'Tren' && key !== 'Linia' && item[key])
+                    .filter(key => key !== 'Tren' && key !== 'Linia' && key !== 'A/D' && item[key])
                     .map(station => ({
                         tren: item.Tren,
                         linia: item.Linia,
+                        ad: item['A/D'],
                         estacio: station,
                         hora: item[station]
                     }))
@@ -370,6 +404,7 @@
                         return (
                             (!filters.tren || entry.tren.toLowerCase().includes(filters.tren)) &&
                             (!filters.linia || entry.linia.toLowerCase().includes(filters.linia)) &&
+                            (!filters.ad || entry.ad === filters.ad) &&
                             (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio)) &&
                             matchesTimeRange
                         );
@@ -386,7 +421,7 @@
             if (filtered.length === 0) {
                 const row = document.createElement('tr');
                 row.className = 'no-results';
-                row.innerHTML = '<td colspan="4">No s\'han trobat resultats</td>';
+                row.innerHTML = '<td colspan="5">No s\'han trobat resultats</td>';
                 fragment.appendChild(row);
             } else {
                 filtered.forEach(entry => {
@@ -394,6 +429,7 @@
                     row.innerHTML = `
                         <td>${entry.tren}</td>
                         <td>${entry.linia}</td>
+                        <td>${entry.ad}</td>
                         <td>${entry.estacio}</td>
                         <td>${entry.hora}</td>
                     `;
@@ -409,6 +445,7 @@
         // Event Listeners
         elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.ad.addEventListener('change', debounce(filterData, DEBOUNCE_DELAY));
         elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
         elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
