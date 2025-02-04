@@ -260,13 +260,7 @@
                    placeholder="Cerca per estació..." 
                    aria-label="Cerca per estació">
             <datalist id="estacions">
-                <option value="PE">Pl. Espanya</option>
-                <option value="MG">Magòria</option>
-                <option value="IC">Ildefons Cerdà</option>
-                <option value="EU">Europa</option>
-                <option value="GO">Gornal</option>
-                <option value="SP">Sant Josep</option>
-                <option value="LH">L'Hospitalet</option>
+               <!-- Las opciones se cargarán dinámicamente -->
             </datalist>
         </div>
 
@@ -312,6 +306,27 @@
             </tbody>
         </table>
     </div>
+
+    <script>
+        // Función para cargar las estaciones desde el fichero JSON
+        function cargarEstaciones() {
+            fetch('estacions.json')
+                .then(response => response.json())
+                .then(data => {
+                    const datalist = document.getElementById('estacions');
+                    data.forEach(estacion => {
+                        const option = document.createElement('option');
+                        option.value = estacion.value;
+                        option.textContent = estacion.name;
+                        datalist.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error cargando las estaciones:', error));
+        }
+    
+        // Llamar a la función para cargar las estaciones cuando la página se cargue
+        window.onload = cargarEstaciones;
+    </script>
 
     <script>
         function updateTableTitle() {
