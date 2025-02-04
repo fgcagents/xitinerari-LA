@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cerca de Trens</title>
+    <title>Itinerari LA51_1</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@200..700&display=swap">
+
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -14,13 +16,22 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             max-width: 800px;
             margin: auto;
             padding: 20px;
             background-color: var(--background-color);
             color: var(--primary-color);
         }
+
+        h1 {
+            font-family: 'Roboto', Arial, sans-serif;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-top: 50px;
+            margin-bottom: 1rem;
+}
 
         .search-container {
             display: flex;
@@ -33,7 +44,7 @@
 
         label {
             margin-bottom: 0.25rem;
-            font-weight: bold;
+            font-weight: normal;
             font-size: 0.9rem;
         }
 
@@ -76,7 +87,7 @@
         th, td {
             border: 1px solid #ddd;
             padding: 12px;
-            text-align: left;
+            text-align: center;
         }
 
         th {
@@ -187,6 +198,7 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
             margin-top: 1rem;
+            letter-spacing: 0.5rem;
         }
 
         #loadMoreButton:hover {
@@ -195,7 +207,7 @@
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">Cerca de Trens</h1>
+    <h1 style="text-align: center;">Itinerari LA51_1 feiners</h1>
     
     <div class="search-container">
         <!-- Nova fila per a Tren, Línia i A/D -->
@@ -304,8 +316,9 @@
             }
         }
     </script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
     <script>
         let data = [];
         let currentPage = 0; // Índex de la pàgina actual
