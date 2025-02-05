@@ -489,9 +489,9 @@
         const timeA = convertTimeToMinutes(a.hora);
         const timeB = convertTimeToMinutes(b.hora);
 
-        // Normalizar los tiempos para manejar correctamente los cruces de medianoche
-        const normalizedTimeA = timeA % 1440;
-        const normalizedTimeB = timeB % 1440;
+        // Usar una estrategia de normalización más inteligente
+        const normalizedTimeA = timeA >= 1440 ? timeA - 1440 : timeA;
+        const normalizedTimeB = timeB >= 1440 ? timeB - 1440 : timeB;
 
         return normalizedTimeA - normalizedTimeB;
     });
