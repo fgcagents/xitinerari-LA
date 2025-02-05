@@ -489,9 +489,9 @@
         	    const timeA = convertTimeToMinutes(a.hora);
         	    const timeB = convertTimeToMinutes(b.hora);
         	// Si un tren comienza antes de la medianoche y el otro después, ajustamos la comparación
-        	if (timeA < 720 && timeB >= 720) { // 720 minutos = 12:00 PM
+        	if (timeA < 1440 && timeB >= 1440) { // 720 minutos = 12:00 PM
          	   return 1; // El tren que comienza antes de la medianoche va después
-       		 } else if (timeA >= 720 && timeB < 720) {
+       		 } else if (timeA >= 1440 && timeB < 1440) {
        		     return -1; // El tren que comienza después de la medianoche va antes
        		 } else {
          	   return timeA - timeB; // Orden normal si ambos están en el mismo periodo
