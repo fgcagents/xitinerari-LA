@@ -216,6 +216,17 @@
         #loadMoreButton:hover {
             background-color: var(--secondary-color);
         }
+
+        .select-search {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
     </style>
 </head>
 <body>
@@ -255,13 +266,10 @@
         <!-- Resta del formulari (Estació i Horari) -->
         <div class="form-group">
             <label for="estacio">Estació</label>
-            <input list="estacions" 
-                   id="estacio" 
-                   placeholder="Cerca per estació..." 
-                   aria-label="Cerca per estació">
-            <datalist id="estacions">
-               <!-- Las opciones se cargarán dinámicamente -->
-            </datalist>
+            <select class="select-search" id="estacio" aria-label="Cerca per estació">
+                <option value="">Selecciona una estació</option>
+                <!-- Las opciones se cargarán dinámicamente -->
+            </select>
         </div>
 
         <div class="form-group">
@@ -308,24 +316,49 @@
     </div>
 
     <script>
-        // Función para cargar las estaciones desde el fichero JSON
-        function cargarEstaciones() {
-            fetch('estacions.json')
-                .then(response => response.json())
-                .then(data => {
-                    const datalist = document.getElementById('estacions');
-                    data.forEach(estacion => {
-                        const option = document.createElement('option');
-                        option.value = estacion.value;
-                        option.textContent = estacion.name;
-                        datalist.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error cargando las estaciones:', error));
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('estacio');
+            const datalist = document.getElementById('estacions');
     
-        // Llamar a la función para cargar las estaciones cuando la página se cargue
-        window.onload = cargarEstaciones;
+            // Función para cargar las estaciones desde el fichero JSON
+            function cargarEstaciones() {
+                fetch('estacions.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        datalist.innerHTML = ''; // Limpiar opciones existentes
+                        data.forEach(estacion => {
+                            const option = document.createElement('option');
+                            option.value = estacion.value;
+                            option.textContent = estacion.name;
+                            datalist.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error cargando las estaciones:', error);
+                        input.placeholder = 'Error al cargar estaciones';
+                    });
+            }
+    
+            // Optimización para dispositivos móviles
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                input.setAttribute('type', 'text');
+            }
+    
+            // Evento para manejar la selección
+            input.addEventListener('change', function() {
+                const selectedValue = this.value;
+                // Validar que el valor seleccionado existe en el datalist
+                const exists = Array.from(datalist.options).some(option => 
+                    option.value === selectedValue || option.textContent === selectedValue
+                );
+                if (!exists) {
+                    this.value = ''; // Limpiar si no es una opción válida
+                }
+            });
+    
+            // Cargar las estaciones
+            cargarEstaciones();
+        });
     </script>
 
     <script>
