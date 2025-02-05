@@ -216,6 +216,26 @@
         #loadMoreButton:hover {
             background-color: var(--secondary-color);
         }
+        /* Estilos adicionales para el autocompletado personalizado */
+        .autocomplete-suggestions {
+            position: absolute;
+            border: 1px solid #ddd;
+            background: white;
+            z-index: 9999;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .autocomplete-suggestion {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+
+        .autocomplete-suggestion:hover {
+            background: #f0f0f0;
+        }
+
     </style>
 </head>
 <body>
@@ -255,13 +275,8 @@
         <!-- Resta del formulari (Estació i Horari) -->
         <div class="form-group">
             <label for="estacio">Estació</label>
-            <input list="estacions" 
-                   id="estacio" 
-                   placeholder="Cerca per estació..." 
-                   aria-label="Cerca per estació">
-            <datalist id="estacions">
-               <!-- Las opciones se cargarán dinámicamente -->
-            </datalist>
+            <input id="estacio" placeholder="Cerca per estació..." aria-label="Cerca per estació">
+            <div id="autocompleteSuggestions" class="autocomplete-suggestions"></div>
         </div>
 
         <div class="form-group">
@@ -313,20 +328,42 @@
             fetch('estacions.json')
                 .then(response => response.json())
                 .then(data => {
-                    const datalist = document.getElementById('estacions');
-                    data.forEach(estacion => {
-                        const option = document.createElement('option');
-                        option.value = estacion.value;
-                        option.textContent = estacion.name;
-                        datalist.appendChild(option);
-                    });
+                    window.estacions = data;
                 })
                 .catch(error => console.error('Error cargando las estaciones:', error));
         }
-    
+
+        // Función para mostrar sugerencias de autocompletado
+        function mostrarSugerencias(value) {
+            const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+            suggestionsDiv.innerHTML = '';
+            if (!value) return;
+
+            const suggestions = window.estacions.filter(estacion =>
+                estacion.name.toLowerCase().includes(value.toLowerCase())
+            );
+
+            suggestions.forEach(suggestion => {
+                const div = document.createElement('div');
+                div.classList.add('autocomplete-suggestion');
+                div.textContent = suggestion.name;
+                div.addEventListener('click', () => {
+                    document.getElementById('estacio').value = suggestion.name;
+                    suggestionsDiv.innerHTML = '';
+                });
+                suggestionsDiv.appendChild(div);
+            });
+        }
+
+        // Event listener para el input de estación
+        document.getElementById('estacio').addEventListener('input', (e) => {
+            mostrarSugerencias(e.target.value);
+        });
+
         // Llamar a la función para cargar las estaciones cuando la página se cargue
         window.onload = cargarEstaciones;
     </script>
+
 
     <script>
         function updateTableTitle() {
