@@ -486,14 +486,19 @@
 
 	   function sortResultsByTime(results) {
     return results.sort((a, b) => {
-        const timeA = convertTimeToMinutes(a.hora);
-        const timeB = convertTimeToMinutes(b.hora);
+        const timeA = timeToMinutes(a.hora);
+        const timeB = timeToMinutes(b.hora);
 
-        // Usar una estrategia de normalización más inteligente
-        const normalizedTimeA = timeA >= 1440 ? timeA - 1440 : timeA;
-        const normalizedTimeB = timeB >= 1440 ? timeB - 1440 : timeB;
+        // Manejar casos de tiempo nulo
+        if (timeA === null) return 1;
+        if (timeB === null) return -1;
 
-        return normalizedTimeA - normalizedTimeB;
+        // Ajustar para horarios después de medianoche (por ejemplo, 00:30, 01:00, etc.)
+        // Si el horario A es antes de las 4:00 (240 minutos), añadir 24 horas (1440 minutos)
+        const adjustedTimeA = timeA < 240 ? timeA + 1440 : timeA;
+        const adjustedTimeB = timeB < 240 ? timeB + 1440 : timeB;
+
+        return adjustedTimeA - adjustedTimeB;
     });
 	} 
         
