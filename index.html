@@ -441,5 +441,167 @@
         }
 
         /**
-         * Ordena els resultats per hora
-         * @param {Array}
+         * Ordena els resultats per hora de pas
+         * @param {Array} results - Array d'objectes amb les dades dels trens
+         * @returns {Array} Array ordenat per hora de pas
+         */
+        function sortResultsByTime(results) {
+            return results.sort((a, b) => {
+                const timeA = timeToMinutes(a.hora);
+                const timeB = timeToMinutes(b.hora);
+                
+                // Manejar casos de temps nul
+                if (timeA === null) return 1;
+                if (timeB === null) return -1;
+                
+                // Ajustar per horaris després de mitjanit (00:30, 01:00, etc.)
+                // Si l'horari és abans de les 4:00 (240 minuts), afegir 24 hores (1440 minuts)
+                const adjustedTimeA = timeA < 240 ? timeA + 1440 : timeA;
+                const adjustedTimeB = timeB < 240 ? timeB + 1440 : timeB;
+                
+                return adjustedTimeA - adjustedTimeB;
+            });
+        }
+
+        /**
+         * Filtra les dades segons els criteris de cerca
+         * Actualitza filteredData i crida a updateTable
+         */
+        function filterData() {
+            currentPage = 0; // Reiniciar a la primera pàgina
+            const filters = {
+                tren: elements.tren.value.toLowerCase(),
+                linia: elements.linia.value.toLowerCase(),
+                ad: elements.ad.value,
+                estacio: elements.estacio.value.toLowerCase(),
+                horaInici: elements.horaInici.value,
+                horaFi: elements.horaFi.value
+            };
+            
+            const horaIniciMinuts = timeToMinutes(filters.horaInici);
+            const horaFiMinuts = timeToMinutes(filters.horaFi);
+            
+            // Processar i filtrar les dades
+            filteredData = data.flatMap(item => 
+                Object.keys(item)
+                    .filter(key => key !== 'Tren' && key !== 'Linia' && key !== 'A/D' && item[key])
+                    .map(station => ({
+                        tren: item.Tren,
+                        linia: item.Linia,
+                        ad: item['A/D'],
+                        estacio: station,
+                        hora: item[station]
+                    }))
+                    .filter(entry => {
+                        const entryTimeMinutes = convertTimeToMinutes(entry.hora);
+                        const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
+                            (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
+                        
+                        return (
+                            (!filters.tren || entry.tren.toLowerCase().includes(filters.tren)) &&
+                            (!filters.linia || entry.linia.toLowerCase().includes(filters.linia)) &&
+                            (!filters.ad || entry.ad === filters.ad) &&
+                            (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio)) &&
+                            matchesTimeRange
+                        );
+                    })
+            );
+
+            // Ordenar els resultats per hora de pas
+            filteredData = sortResultsByTime(filteredData);
+            updateTable();
+        }
+        
+        /**
+         * Actualitza la taula amb els resultats filtrats
+         * Gestiona la paginació i el botó de "Carregar més"
+         */
+        function updateTable() {
+            const tbody = elements.resultats.querySelector('tbody');
+            const fragment = document.createDocumentFragment();
+
+            // Calcular els elements a mostrar per a la pàgina actual
+            const startIndex = currentPage * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const itemsToShow = filteredData.slice(startIndex, endIndex);
+
+            // Netejar la taula abans d'afegir nous elements
+            tbody.innerHTML = '';
+
+            if (itemsToShow.length === 0 && currentPage === 0) {
+                // Si no hi ha resultats i és la primera pàgina
+                const row = document.createElement('tr');
+                row.className = 'no-results';
+                row.innerHTML = '<td colspan="5">No s\'han trobat resultats</td>';
+                fragment.appendChild(row);
+            } else {
+                // Afegir els elements de la pàgina actual
+                itemsToShow.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.ad}</td>
+                        <td>${entry.tren}</td>
+                        <td>${entry.estacio}</td>
+                        <td>${entry.hora}</td>
+                        <td>${entry.linia}</td>
+                    `;
+                    fragment.appendChild(row);
+                });
+            }
+
+            tbody.appendChild(fragment);
+            elements.resultContainer.style.display = 'block';
+
+            // Gestionar el botó "Carregar més"
+            updateLoadMoreButton(endIndex);
+        }
+
+        /**
+         * Actualitza l'estat del botó "Carregar més"
+         * @param {number} endIndex - Índex final dels elements mostrats actualment
+         */
+        function updateLoadMoreButton(endIndex) {
+            const loadMoreButton = document.getElementById('loadMoreButton');
+            
+            if (filteredData.length > endIndex) {
+                if (!loadMoreButton) {
+                    const button = document.createElement('button');
+                    button.id = 'loadMoreButton';
+                    button.textContent = 'Carregar més';
+                    button.className = 'clear-filters';
+                    button.style.marginTop = '1rem';
+                    button.addEventListener('click', () => {
+                        currentPage++;
+                        updateTable();
+                    });
+                    elements.resultContainer.appendChild(button);
+                }
+            } else {
+                loadMoreButton?.remove();
+            }
+        }
+
+        // Event Listeners
+        elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.ad.addEventListener('change', debounce(filterData, DEBOUNCE_DELAY));
+        elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+        elements.clearFilters.addEventListener('click', clearFilters);
+        
+        // Inicialitzar l'aplicació
+        window.onload = async () => {
+            try {
+                await Promise.all([
+                    cargarEstaciones(),
+                    loadData()
+                ]);
+            } catch (error) {
+                console.error('Error inicialitzant l\'aplicació:', error);
+                showError('Error inicialitzant l\'aplicació');
+            }
+        };
+    </script>
+</body>
+</html>
