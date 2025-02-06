@@ -6,7 +6,9 @@
     <title>Itinerari LA51_1</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@200..700&display=swap">
 
+    <!-- Variables CSS globals i estils -->
     <style>
+        /* Variables globals per colors i estils principals */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
@@ -15,6 +17,7 @@
             --success-color: #2ecc71;
         }
 
+        /* Estils base */
         body {
             font-family: 'Roboto', Arial, sans-serif;
             max-width: 800px;
@@ -24,24 +27,17 @@
             color: var(--primary-color);
         }
 
-        h1 {
-            font-family: 'Roboto', Arial, sans-serif;
+        /* Estils per títols */
+        h1, h2 {
             text-align: center;
-            font-size: 1.2rem;
             font-weight: 400;
-            /*margin-top: 50px;*/
             margin-bottom: 1rem;
         }
 
-        h2 {
-            /*font-family: 'Roboto', Arial, sans-serif;*/
-            text-align: center;
-            font-size: 1.4rem;
-            font-weight: 400;
-           /* margin-top: 50px;*/
-            margin-bottom: 1rem;
-        }
+        h1 { font-size: 1.2rem; }
+        h2 { font-size: 1.4rem; }
 
+        /* Contenidor de cerca i formulari */
         .search-container {
             display: flex;
             flex-direction: column;
@@ -51,6 +47,7 @@
             width: 100%;
         }
 
+        /* Estils per inputs i selects */
         label {
             margin-bottom: 0.25rem;
             font-weight: normal;
@@ -73,13 +70,14 @@
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
+        /* Contenidor de resultats */
         .result-container {
             background: white;
-            padding: 5px 10px 5px 10px;
+            padding: 5px 10px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
-	        display: none;
+            display: none;
         }
 
         .result-container.visible {
@@ -87,6 +85,7 @@
             animation: fadeIn 0.3s ease;
         }
 
+        /* Estils per la taula */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -95,7 +94,7 @@
 
         th, td {
             border: 1px solid #ddd;
-            padding: 5px 5px 5px 5px;
+            padding: 5px;
             text-align: center;                   
             font-size: .9rem;
             font-weight: 400;
@@ -111,6 +110,7 @@
             background-color: #f8f9fa;
         }
 
+        /* Estats i missatges */
         .loading {
             text-align: center;
             padding: 2rem;
@@ -136,6 +136,7 @@
             color: var(--primary-color);
         }
 
+        /* Botons i controls */
         .clear-filters {
             padding: 0.5rem 1rem;
             background-color: var(--primary-color);
@@ -154,25 +155,18 @@
             background-color: var(--secondary-color);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
+        /* Estils per rangs de temps i formulari */
         .time-range {
             display: flex;
             gap: 2rem;
             width: 200px;
-			justify-content: center;
+            justify-content: center;
         }
 
         .time-input {
             flex: 1;
         }
 
-        .invalid-time {
-            border-color: var(--error-color);
-        }
         .form-row {
             display: flex;
             gap: 2rem;
@@ -185,44 +179,18 @@
             max-width: 100px;
         }
 
-        .form-group select {
-            width: 100%;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            transition: border-color 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
-        }
-
-        #loadMoreButton {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 1rem;
-            letter-spacing: 0.05rem;
-        }
-
-        #loadMoreButton:hover {
-            background-color: var(--secondary-color);
+        /* Animacions */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center;">Itinerari LA51_1 feiners</h1>
+    <h1>Itinerari LA51_1 feiners</h1>
     
+    <!-- Formulari de cerca -->
     <div class="search-container">
-        <!-- Nova fila per a Tren, Línia i A/D -->
         <div class="form-row">
             <div class="form-group">
                 <label for="tren">Tren</label>
@@ -250,18 +218,13 @@
             </div>
         </div>
 
-        
-
-        <!-- Resta del formulari (Estació i Horari) -->
         <div class="form-group">
             <label for="estacio">Estació</label>
             <input list="estacions" 
                    id="estacio" 
                    placeholder="Cerca per estació..." 
                    aria-label="Cerca per estació">
-            <datalist id="estacions">
-               <!-- Las opciones se cargarán dinámicamente -->
-            </datalist>
+            <datalist id="estacions"></datalist>
         </div>
 
         <div class="form-group">
@@ -283,20 +246,20 @@
         <button class="clear-filters" id="clearFilters">Netejar filtres</button>
     </div>
 
+    <!-- Contenidors d'estat i resultats -->
     <div class="loading" id="loading">Carregant...</div>
     <div class="error-message" id="errorMessage"></div>
     
     <div class="result-container" id="resultContainer">
         <table id="resultats">
-            <h2 id="table-title" style="text-align: center;">Resultats</h2>
-
+            <h2 id="table-title">Resultats</h2>
             <thead>
                 <tr>
                     <th>A/D</th>
-		            <th>Tren</th>
+                    <th>Tren</th>
                     <th>Estació</th>
                     <th>Hora</th>
-		            <th>Línia</th>
+                    <th>Línia</th>
                 </tr>
             </thead>
             <tbody>
@@ -307,54 +270,23 @@
         </table>
     </div>
 
-    <script>
-        // Función para cargar las estaciones desde el fichero JSON
-        function cargarEstaciones() {
-            fetch('estacions.json')
-                .then(response => response.json())
-                .then(data => {
-                    const datalist = document.getElementById('estacions');
-                    data.forEach(estacion => {
-                        const option = document.createElement('option');
-                        option.value = estacion.value;
-                        option.textContent = estacion.name;
-                        datalist.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error cargando las estaciones:', error));
-        }
-    
-        // Llamar a la función para cargar las estaciones cuando la página se cargue
-        window.onload = cargarEstaciones;
-    </script>
-
-    <script>
-        function updateTableTitle() {
-            const select = document.getElementById('ad');
-            const title = document.getElementById('table-title');
-            const value = select.value;
-    
-            if (value === 'A') {
-                title.textContent = 'Trens Ascendents';
-            } else if (value === 'D') {
-                title.textContent = 'Trens Descendents';
-            } else {
-                title.textContent = 'Ascendents/Descendents';
-            }
-        }
-    </script>
-
+    <!-- Scripts externs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
     <script>
-        let data = [];
-        let currentPage = 0; // Índex de la pàgina actual
-        const ITEMS_PER_PAGE = 33; // Nombre d'elements per pàgina
-        
+        /**
+         * Constants i variables globals
+         */
+        const ITEMS_PER_PAGE = 33;
         const DEBOUNCE_DELAY = 300;
-        let filterTimeout; // Definir la variable filterTimeout
-        let filteredData = []; // Guardar los datos filtrados
-        
+        let data = [];
+        let currentPage = 0;
+        let filterTimeout;
+        let filteredData = [];
+
+        /**
+         * Referències als elements del DOM
+         */
         const elements = {
             tren: document.getElementById('tren'),
             linia: document.getElementById('linia'),
@@ -369,19 +301,60 @@
             resultats: document.getElementById('resultats')
         };
 
-        // Funció per convertir hora del format "HH:MM" a minuts des de mitjanit
+        /**
+         * Carrega les estacions des del fitxer JSON
+         */
+        async function cargarEstaciones() {
+            try {
+                const response = await fetch('estacions.json');
+                const data = await response.json();
+                const datalist = document.getElementById('estacions');
+                
+                data.forEach(estacion => {
+                    const option = document.createElement('option');
+                    option.value = estacion.value;
+                    option.textContent = estacion.name;
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error carregant les estacions:', error);
+                showError('Error carregant les estacions');
+            }
+        }
+
+        /**
+         * Actualitza el títol de la taula segons el filtre A/D seleccionat
+         */
+        function updateTableTitle() {
+            const select = document.getElementById('ad');
+            const title = document.getElementById('table-title');
+            const value = select.value;
+    
+            title.textContent = value === 'A' ? 'Trens Ascendents' :
+                              value === 'D' ? 'Trens Descendents' :
+                              'Ascendents/Descendents';
+        }
+
+        /**
+         * Converteix una hora en format "HH:MM" a minuts des de mitjanit
+         * @param {string} timeStr - Hora en format "HH:MM"
+         * @returns {number|null} Minuts des de mitjanit o null si el format és invàlid
+         */
         function timeToMinutes(timeStr) {
             if (!timeStr) return null;
             const [hours, minutes] = timeStr.split(':').map(Number);
             return hours * 60 + minutes;
         }
 
-        // Funció per convertir hora en format "8:45" o "18:45" a minuts
+        /**
+         * Converteix una hora en format "8:45" o "18:45" a minuts, contemplant AM/PM
+         * @param {string} timeStr - Hora en format "HH:MM" o "HH:MM AM/PM"
+         * @returns {number|null} Minuts des de mitjanit o null si el format és invàlid
+         */
         function convertTimeToMinutes(timeStr) {
             if (!timeStr) return null;
             let [hours, minutes] = timeStr.split(':').map(Number);
             
-            // Convertir format 12h a 24h si és necessari
             if (timeStr.toLowerCase().includes('pm') && hours < 12) {
                 hours += 12;
             } else if (timeStr.toLowerCase().includes('am') && hours === 12) {
@@ -391,7 +364,10 @@
             return hours * 60 + minutes;
         }
 
-        // Funció per carregar dades
+        /**
+         * Carrega les dades des del fitxer CSV
+         * @returns {Promise<Array>} Array amb les dades carregades
+         */
         async function loadData() {
             try {
                 elements.loading.classList.add('visible');
@@ -400,7 +376,6 @@
                 if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
                 const csvText = await response.text();
                 
-                // Parsing amb Papa Parse
                 const parseResult = Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
@@ -411,21 +386,25 @@
                 });
 
                 if (parseResult.errors.length > 0) {
-                    console.warn('Advertencies durant el parsing:', parseResult.errors);
+                    console.warn('Advertències durant el parsing:', parseResult.errors);
                 }
 
                 data = parseResult.data;
                 return data;
                 
             } catch (error) {
-                console.error('Error al cargar dades:', error);
-                elements.loading.classList.remove('visible');
+                console.error('Error al carregar dades:', error);
+                showError('Error al carregar les dades');
                 throw error;
             } finally {
                 elements.loading.classList.remove('visible');
             }
         }
 
+        /**
+         * Mostra un missatge d'error temporal
+         * @param {string} message - Missatge d'error a mostrar
+         */
         function showError(message) {
             elements.errorMessage.textContent = message;
             elements.errorMessage.style.display = 'block';
@@ -434,6 +413,12 @@
             }, 5000);
         }
         
+        /**
+         * Implementa el patró debounce per evitar massa crides a una funció
+         * @param {Function} func - Funció a executar
+         * @param {number} delay - Temps d'espera en ms
+         * @returns {Function} Funció amb debounce aplicat
+         */
         function debounce(func, delay) {
             return function executedFunction(...args) {
                 clearTimeout(filterTimeout);
@@ -441,6 +426,9 @@
             };
         }
         
+        /**
+         * Neteja tots els filtres i amaga els resultats
+         */
         function clearFilters() {
             elements.tren.value = '';
             elements.linia.value = '';
@@ -449,138 +437,9 @@
             elements.horaInici.value = '';
             elements.horaFi.value = '';
             elements.resultContainer.style.display = 'none';
+            updateTableTitle();
         }
 
-	  function sortResultsByTime(results) {
-    	    return results.sort((a, b) => {
-	        const timeA = timeToMinutes(a.hora);
-	        const timeB = timeToMinutes(b.hora);
-	
-	        // Manejar casos de tiempo nulo
-	        if (timeA === null) return 1;
-	        if (timeB === null) return -1;
-	
-	        // Ajustar para horarios después de medianoche (por ejemplo, 00:30, 01:00, etc.)
-	        // Si el horario A es antes de las 4:00 (240 minutos), añadir 24 horas (1440 minutos)
-	        const adjustedTimeA = timeA < 240 ? timeA + 1440 : timeA;
-	        const adjustedTimeB = timeB < 240 ? timeB + 1440 : timeB;
-	
-		return adjustedTimeA - adjustedTimeB;
-    		});
-	} 
-        
-        function filterData() {
-            currentPage = 0; // Reiniciar a la primera pàgina
-            const filters = {
-                tren: elements.tren.value.toLowerCase(),
-                linia: elements.linia.value.toLowerCase(),
-                ad: elements.ad.value,
-                estacio: elements.estacio.value.toLowerCase(),
-                horaInici: elements.horaInici.value,
-                horaFi: elements.horaFi.value
-            };
-            
-            const horaIniciMinuts = timeToMinutes(filters.horaInici);
-            const horaFiMinuts = timeToMinutes(filters.horaFi);
-            
-            filteredData = data.flatMap(item => 
-                Object.keys(item)
-                    .filter(key => key !== 'Tren' && key !== 'Linia' && key !== 'A/D' && item[key])
-                    .map(station => ({
-                        tren: item.Tren,
-                        linia: item.Linia,
-                        ad: item['A/D'],
-                        estacio: station,
-                        hora: item[station]
-                    }))
-                    .filter(entry => {
-                        const entryTimeMinutes = convertTimeToMinutes(entry.hora);
-                        const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
-                            (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
-                        
-                        return (
-                            (!filters.tren || entry.tren.toLowerCase().includes(filters.tren)) &&
-                            (!filters.linia || entry.linia.toLowerCase().includes(filters.linia)) &&
-                            (!filters.ad || entry.ad === filters.ad) &&
-                            (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio)) &&
-                            matchesTimeRange
-                        );
-                    })
-            );
-// Ordenar els resultats per hora de pas ascendent
-    filteredData = sortResultsByTime(filteredData);
-            updateTable();
-        }
-        
-        function updateTable() {
-            const tbody = elements.resultats.querySelector('tbody');
-            const fragment = document.createDocumentFragment();
-
-            // Calcular els elements a mostrar per a la pàgina actual
-            const startIndex = currentPage * ITEMS_PER_PAGE;
-            const endIndex = startIndex + ITEMS_PER_PAGE;
-            const itemsToShow = filteredData.slice(startIndex, endIndex);
-
-            // Netejar la taula abans d'afegir nous elements
-            tbody.innerHTML = '';
-
-            if (itemsToShow.length === 0 && currentPage === 0) {
-                // Si no hi ha resultats i és la primera pàgina
-                const row = document.createElement('tr');
-                row.className = 'no-results';
-                row.innerHTML = '<td colspan="5">No s\'han trobat resultats</td>';
-                fragment.appendChild(row);
-            } else {
-                // Afegir els elements de la pàgina actual
-                itemsToShow.forEach(entry => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${entry.ad}</td>
-                        <td>${entry.tren}</td>
-                        <td>${entry.estacio}</td>
-                        <td>${entry.hora}</td>
-                        <td>${entry.linia}</td>
-                    `;
-                    fragment.appendChild(row);
-                });
-            }
-
-            tbody.appendChild(fragment);
-            elements.resultContainer.style.display = 'block';
-
-            // Afegir o actualitzar el botó "Carregar més" si hi ha més elements per mostrar
-            const loadMoreButton = document.getElementById('loadMoreButton');
-            if (filteredData.length > endIndex) {
-                if (!loadMoreButton) {
-                    const button = document.createElement('button');
-                    button.id = 'loadMoreButton';
-                    button.textContent = 'Carregar més';
-                    button.className = 'clear-filters';
-                    button.style.marginTop = '1rem';
-                    button.addEventListener('click', () => {
-                        currentPage++;
-                        updateTable();
-                    });
-                    elements.resultContainer.appendChild(button);
-                }
-            } else {
-                if (loadMoreButton) {
-                    loadMoreButton.remove(); // Eliminar el botó si no hi ha més elements
-                }
-            }
-        }
-
-        // Event Listeners
-        elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.ad.addEventListener('change', debounce(filterData, DEBOUNCE_DELAY));
-        elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-        elements.clearFilters.addEventListener('click', clearFilters);
-        
-        // Inicialitzar
-        loadData();
-    </script>
-</body>
-</html>
+        /**
+         * Ordena els resultats per hora
+         * @param {Array}
