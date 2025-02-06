@@ -1,3 +1,8 @@
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("El DOM està carregat!");
+    // Aquí va tot el teu codi que interactua amb l’HTML
+});
+
 /**
  * Constants i variables globals
  */
