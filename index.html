@@ -216,17 +216,6 @@
         #loadMoreButton:hover {
             background-color: var(--secondary-color);
         }
-
-        .select-search {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-        
     </style>
 </head>
 <body>
@@ -266,10 +255,13 @@
         <!-- Resta del formulari (Estació i Horari) -->
         <div class="form-group">
             <label for="estacio">Estació</label>
-            <select class="select-search" id="estacio" aria-label="Cerca per estació">
-                <option value="">Selecciona una estació</option>
-                <!-- Las opciones se cargarán dinámicamente -->
-            </select>
+            <input list="estacions" 
+                   id="estacio" 
+                   placeholder="Cerca per estació..." 
+                   aria-label="Cerca per estació">
+            <datalist id="estacions">
+               <!-- Las opciones se cargarán dinámicamente -->
+            </datalist>
         </div>
 
         <div class="form-group">
@@ -316,49 +308,24 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.getElementById('estacio');
-            const datalist = document.getElementById('estacions');
-    
-            // Función para cargar las estaciones desde el fichero JSON
-            function cargarEstaciones() {
-                fetch('estacions.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        datalist.innerHTML = ''; // Limpiar opciones existentes
-                        data.forEach(estacion => {
-                            const option = document.createElement('option');
-                            option.value = estacion.value;
-                            option.textContent = estacion.name;
-                            datalist.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error cargando las estaciones:', error);
-                        input.placeholder = 'Error al cargar estaciones';
+        // Función para cargar las estaciones desde el fichero JSON
+        function cargarEstaciones() {
+            fetch('estacions.json')
+                .then(response => response.json())
+                .then(data => {
+                    const datalist = document.getElementById('estacions');
+                    data.forEach(estacion => {
+                        const option = document.createElement('option');
+                        option.value = estacion.value;
+                        option.textContent = estacion.name;
+                        datalist.appendChild(option);
                     });
-            }
+                })
+                .catch(error => console.error('Error cargando las estaciones:', error));
+        }
     
-            // Optimización para dispositivos móviles
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                input.setAttribute('type', 'text');
-            }
-    
-            // Evento para manejar la selección
-            input.addEventListener('change', function() {
-                const selectedValue = this.value;
-                // Validar que el valor seleccionado existe en el datalist
-                const exists = Array.from(datalist.options).some(option => 
-                    option.value === selectedValue || option.textContent === selectedValue
-                );
-                if (!exists) {
-                    this.value = ''; // Limpiar si no es una opción válida
-                }
-            });
-    
-            // Cargar las estaciones
-            cargarEstaciones();
-        });
+        // Llamar a la función para cargar las estaciones cuando la página se cargue
+        window.onload = cargarEstaciones;
     </script>
 
     <script>
@@ -484,22 +451,22 @@
             elements.resultContainer.style.display = 'none';
         }
 
-	   function sortResultsByTime(results) {
-    return results.sort((a, b) => {
-        const timeA = timeToMinutes(a.hora);
-        const timeB = timeToMinutes(b.hora);
-
-        // Manejar casos de tiempo nulo
-        if (timeA === null) return 1;
-        if (timeB === null) return -1;
-
-        // Ajustar para horarios después de medianoche (por ejemplo, 00:30, 01:00, etc.)
-        // Si el horario A es antes de las 4:00 (240 minutos), añadir 24 horas (1440 minutos)
-        const adjustedTimeA = timeA < 240 ? timeA + 1440 : timeA;
-        const adjustedTimeB = timeB < 240 ? timeB + 1440 : timeB;
-
-        return adjustedTimeA - adjustedTimeB;
-    });
+	  function sortResultsByTime(results) {
+    	    return results.sort((a, b) => {
+	        const timeA = timeToMinutes(a.hora);
+	        const timeB = timeToMinutes(b.hora);
+	
+	        // Manejar casos de tiempo nulo
+	        if (timeA === null) return 1;
+	        if (timeB === null) return -1;
+	
+	        // Ajustar para horarios después de medianoche (por ejemplo, 00:30, 01:00, etc.)
+	        // Si el horario A es antes de las 4:00 (240 minutos), añadir 24 horas (1440 minutos)
+	        const adjustedTimeA = timeA < 240 ? timeA + 1440 : timeA;
+	        const adjustedTimeB = timeB < 240 ? timeB + 1440 : timeB;
+	
+		return adjustedTimeA - adjustedTimeB;
+    		});
 	} 
         
         function filterData() {
