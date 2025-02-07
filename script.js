@@ -136,15 +136,16 @@ function sortResultsByTime(results) {
     return results.sort((a, b) => {
         const timeA = convertTimeToMinutes(a.hora);
         const timeB = convertTimeToMinutes(b.hora);
-        if (timeA < 720 && timeB >= 720) {
-            return 1;
+    // Si un tren comienza antes de la medianoche y el otro después, ajustamos la comparación
+    if (timeA < 720 && timeB >= 720) { // 720 minutos = 12:00 PM
+        return 1; // El tren que comienza antes de la medianoche va después
         } else if (timeA >= 720 && timeB < 720) {
-            return -1;
+            return -1; // El tren que comienza después de la medianoche va antes
         } else {
-            return timeA - timeB;
-        }
-    });
-}
+            return timeA - timeB; // Orden normal si ambos están en el mismo periodo
+            }
+        });
+    }
 
 // Funció principal de filtratge
 function filterData() {
@@ -257,4 +258,4 @@ elements.clearFilters.addEventListener('click', clearFilters);
 window.onload = () => {
     cargarEstaciones();
     loadData();
-};
+}
