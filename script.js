@@ -262,3 +262,4 @@ window.onload = () => {
     cargarEstaciones();
     loadData();
 }
+document.getElementById('current-year').textContent = new Date().getFullYear();
