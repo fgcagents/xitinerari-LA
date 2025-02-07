@@ -207,3 +207,18 @@ tr:nth-child(even) {
 #loadMoreButton:hover {
     background-color: var(--secondary-color);
 }
+
+footer {
+    /*margin-top: 30px;*/
+    background-color: #0a0000;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 30px;
+    text-align: center;
+    font-size: 0.65em;
+    letter-spacing: 2px;
+    width: fit-content;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+}
