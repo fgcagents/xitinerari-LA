@@ -220,6 +220,7 @@ function updateTable() {
 
     itemsToShow.forEach(entry => {
         const row = document.createElement('tr');
+        const rowNumber = startIndex + index + 1;
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
