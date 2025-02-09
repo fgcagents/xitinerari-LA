@@ -201,7 +201,7 @@ tr:nth-child(even) {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 1rem;
-    width: width: fit-content;;
+    width: fit-content;
     letter-spacing: 0.05rem;
 }
 
@@ -223,4 +223,59 @@ footer {
     margin-top: 20px;
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Estilos para la columna de numeración */
+.row-number {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    text-align: center;
+    padding: 5px 2px !important;
+    background-color: #f8f9fa;
+    letter-spacing: normal !important;
+}
+
+th.row-number {
+    background-color: var(--primary-color);
+}
+
+/* Optimización para móviles */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .result-container {
+        padding: 5px;
+    }
+
+    table {
+        font-size: 0.8rem;
+    }
+
+    th, td {
+        padding: 4px 2px;
+        letter-spacing: 0.05rem;
+    }
+
+    .row-number {
+        width: 2rem;
+        min-width: 2rem;
+        padding: 4px 1px !important;
+    }
+
+    /* Ajustar el tamaño de las demás columnas en móvil */
+    td:nth-child(2), th:nth-child(2) { /* A/D */
+        max-width: 2.5rem;
+    }
+    
+    td:nth-child(3), th:nth-child(3) { /* Tren */
+        max-width: 4rem;
+    }
+}
+
+/* Para asegurar scroll horizontal suave en móviles */
+.result-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }

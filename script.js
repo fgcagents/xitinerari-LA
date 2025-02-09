@@ -221,6 +221,7 @@ function updateTable() {
     itemsToShow.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
             <td>${entry.tren}</td>
             <td>${entry.estacio}</td>
