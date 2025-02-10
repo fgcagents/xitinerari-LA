@@ -207,7 +207,6 @@ function updateTable() {
     const tbody = elements.resultats.querySelector('tbody');
     tbody.innerHTML = '';
     
-    // Si no hay datos filtrados o no hay filtros activos, ocultar la tabla
     if (!filteredData || filteredData.length === 0) {
         elements.resultContainer.style.display = 'none';
         return;
@@ -218,9 +217,11 @@ function updateTable() {
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const itemsToShow = filteredData.slice(startIndex, endIndex);
 
-    itemsToShow.forEach(entry => {
+    itemsToShow.forEach((entry, index) => {
         const row = document.createElement('tr');
+        const rowNumber = startIndex + index + 1;
         row.innerHTML = `
+            <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
             <td>${entry.tren}</td>
             <td>${entry.estacio}</td>
