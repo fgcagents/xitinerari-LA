@@ -118,7 +118,7 @@ function initMenuListeners() {
                              filename.includes('2_3') ? '200/300' : 
                              'feiners';
                              
-                document.querySelector('h1').textContent = `Itinerari LA51_1 ${title}`;
+                document.querySelector('h1').textContent = `Servei ${title}`;
                 
                 // Si tens alguna funció que processa o mostra les dades, crida-la aquí
                 // Per exemple: processData() o showData()

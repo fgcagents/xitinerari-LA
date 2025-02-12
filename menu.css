@@ -15,6 +15,9 @@
     text-decoration: none;
     letter-spacing: 1px;
     padding: 10px 15px;
+    font-family: Montserrat;
+    font-weight: 400;
+    font-size: 1.1rem;
 }
 .navbar a:hover {
     background-color: #2c3e50;
