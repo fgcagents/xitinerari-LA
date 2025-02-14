@@ -220,8 +220,16 @@ function filterData() {
             }))
             .filter(entry => {
                 const entryTimeMinutes = convertTimeToMinutes(entry.hora);
-                const matchesTimeRange = !horaIniciMinuts || !horaFiMinuts || 
-                    (entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts);
+                
+                // Lógica del filtro de tiempo mejorada
+                let matchesTimeRange = true;
+                if (horaIniciMinuts !== null) {
+                    if (horaFiMinuts === null) {
+                        matchesTimeRange = entryTimeMinutes >= horaIniciMinuts;
+                    } else {
+                        matchesTimeRange = entryTimeMinutes >= horaIniciMinuts && entryTimeMinutes <= horaFiMinuts;
+                    }
+                }
                 
                 return (
                     (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
