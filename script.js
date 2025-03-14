@@ -330,34 +330,73 @@ function getApiStation(record) {
     }
 }
 
-// Función para actualizar el estado "circulating" de las entradas en filteredData
+// Nueva función para parsear el campo 'properes_parades' de la API, 
+// que puede contener uno o varios objetos JSON separados por ';'
+function parseProperesParades(paradasStr) {
+    const paradas = [];
+    const parts = paradasStr.split(';');
+    parts.forEach(part => {
+        try {
+            const obj = JSON.parse(part);
+            if (obj.parada) {
+                // Se normaliza la parada (en mayúsculas para facilitar la comparación)
+                paradas.push(obj.parada.trim().toUpperCase());
+            }
+        } catch (e) {
+            // Si falla el parse, se ignora esa parte
+        }
+    });
+    return paradas;
+}
+
+// Función para determinar si un tren (del horario) está circulando.
+// Se comprueba que la hora del tren (scheduleRecord.hora) esté en una 
+// ventana de ±5 minutos respecto a la hora actual y se coteja línea, sentido y estación.
+function isCirculating(scheduleRecord, apiRecords) {
+    const now = new Date();
+    // Construir la fecha del tren usando la fecha de hoy y la hora del registro
+    const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
+    const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+  
+    // Ventana de 5 minutos (en milisegundos)
+    const timeWindow = 5 * 60 * 1000;
+    if (Math.abs(now - scheduleTime) > timeWindow) {
+        return false;
+    }
+  
+    // Comparar con los registros de la API: cotejar linia, torn y que la estación esté entre las paradas
+    for (let record of apiRecords) {
+        if (
+            scheduleRecord.linia.toLowerCase() === record.lin.toLowerCase() &&
+            scheduleRecord.torn.toUpperCase() === record.dir.toUpperCase() &&
+            record.paradas.includes(scheduleRecord.estacio.trim().toUpperCase())
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Modificar updateCirculatingStatus() para usar la nueva aproximación
 async function updateCirculatingStatus() {
     try {
-        const apiTrains = await fetchAPITrains();
-        const now = new Date();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-        filteredData.forEach(entry => {
-            const entryMinutes = timeToMinutes(entry.hora);
-            // Se comprueba que la hora de la entrada esté en una ventana de ±2 minutos respecto a la hora actual
-            if (entryMinutes !== null && Math.abs(entryMinutes - currentMinutes) <= 2) {
-                // Se busca en los datos de la API un registro que coincida en línea, dirección y estación
-                const match = apiTrains.find(apiRecord => {
-                    const apiLine = apiRecord.lin ? apiRecord.lin.toLowerCase() : '';
-                    const apiDir = apiRecord.dir ? apiRecord.dir.toUpperCase() : '';
-                    const apiEstacio = getApiStation(apiRecord);
-                    return (
-                        apiLine === entry.linia.toLowerCase() &&
-                        apiDir === entry.ad.toUpperCase() &&
-                        apiEstacio === entry.estacio.toLowerCase()
-                    );
-                });
-                entry.circulating = !!match;
-            } else {
-                entry.circulating = false;
-            }
+        // Obtén todos los registros de la API (con paginación)
+        const apiResponse = await fetchAPITrains();
+        // Procesa los registros de la API para normalizarlos
+        const apiRecords = apiResponse.results.map(record => {
+            return {
+                lin: record.lin,
+                dir: record.dir,
+                paradas: parseProperesParades(record.properes_parades)
+            };
         });
-        // Se actualiza la tabla para reflejar los cambios
+      
+        // Para cada registro filtrado del horario, se establece la propiedad 'circulating'
+        filteredData.forEach(scheduleRecord => {
+            scheduleRecord.circulating = isCirculating(scheduleRecord, apiRecords);
+        });
+      
+        // Actualiza la tabla para reflejar los cambios (añadiendo la clase 'circulating')
         updateTable();
     } catch (error) {
         console.error("Error actualizando el estado de los trenes circulantes:", error);
