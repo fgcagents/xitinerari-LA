@@ -73,7 +73,7 @@
       
       // Comparar línea, sentido y que la estación esté entre las paradas de la API
       for (let record of apiRecords) {
-        if (scheduleRecord.linia === record.lin && scheduleRecord.Torn === record.dir) {
+        if (scheduleRecord.linia === record.lin && scheduleRecord.a/d === record.dir) {
           if (record.paradas.includes(scheduleRecord.Estació)) {
             return true;
           }
