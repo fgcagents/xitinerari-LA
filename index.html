@@ -1,146 +1,111 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <title>Trenes en Circulación</title>
-  <style>
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    .circulando {
-      background-color: #a8e6a1;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itinerari LA51_2 07/2023 ver.sep/2024</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@200..700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat%3A400%2C700%7CBitter%3A400%2C700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="menu.css"> <!-- Estils del menú -->
 </head>
 <body>
-  <h1>Trenes en Horario y Circulando</h1>
-  <table id="trenesTable">
-    <thead>
-      <tr>
-        <th>Tren</th>
-        <th>Estació</th>
-        <th>Hora</th>
-        <th>Línia</th>
-        <th>Torn</th>
-        <th>Circulando</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <!-- Menú reutilitzable -->
+    <div class="navbar">
+        <a href="index.html" style="font-weight: 400;">Itinerari LA51_2 jul/2023</a>
+        <div class="menu-toggle" id="menu-toggle">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="menu" id="menu">
+            <a href="#" data-file="itinerari_LA51_2_0_1_asc_desc.json">000/100</a>
+            <a href="#" data-file="itinerari_LA51_2_4_5_asc_desc.json">400/500</a>
+            <a href="#" data-file="itinerari_LA51_2_2_3_asc_desc.json">200/300</a>
+        </div>
+    </div>
+    <h1 style="text-align: center;">Servei 000/100</h1>
+    
+    <div class="search-container">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tren">Tren</label>
+                <input type="text" id="tren" placeholder="Cerca per tren..." aria-label="Cerca per número de tren">
+            </div>
 
-  <script>
-    // Función para parsear el campo 'properes_parades' que puede contener uno o varios objetos JSON separados por ';'
-    function parseProperesParades(paradasStr) {
-      const paradas = [];
-      if (!paradasStr) return paradas;
-      const parts = paradasStr.split(';');
-      parts.forEach(part => {
-        try {
-          const obj = JSON.parse(part);
-          if (obj.parada) {
-            paradas.push(obj.parada);
-          }
-        } catch (e) {
-          console.error("Error al parsear properes_parades:", e);
-        }
-      });
-      return paradas;
-    }
+            <div class="form-group">
+                <label for="linia">Línia</label>
+                <input type="text" id="linia" placeholder="Cerca per línia..." aria-label="Cerca per línia de tren">
+            </div>
 
-    // Función que determina si un tren del horario está circulando según la API
-    // Se considera una ventana de ±5 minutos respecto a la hora actual
-    function isCirculating(scheduleRecord, apiRecords) {
-      const now = new Date();
-      // Suponemos que el campo 'hora' está en formato "HH:MM"
-      const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
-      const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
-      
-      // Ventana de 5 minutos en milisegundos
-      const timeWindow = 5 * 60 * 1000;
-      if (Math.abs(now - scheduleTime) > timeWindow) {
-        return false;
-      }
-      
-      // Comparar línea, sentido y que la estación esté entre las paradas de la API
-      for (let record of apiRecords) {
-        if (scheduleRecord.linia === record.lin && scheduleRecord.a/d === record.dir) {
-          if (record.paradas.includes(scheduleRecord.Estació)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
+            <div class="form-group">
+                <label for="ad">ASC/DES</label>
+                <select id="ad" aria-label="Selecciona Anada o Destí" onchange="updateTableTitle()">
+                    <option value="">Tots</option>
+                    <option value="A">Ascendent</option>
+                    <option value="D">Descendent</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="estacio">Estació</label>
+                <input list="estacions" id="estacio" placeholder="Cerca per estació..." aria-label="Cerca per estació">
+                <datalist id="estacions"></datalist>
+            </div>
 
-    // Función para poblar la tabla HTML con los datos procesados
-    function populateTable(scheduleData, apiRecords) {
-      const tbody = document.querySelector('#trenesTable tbody');
-      tbody.innerHTML = ''; // Limpiar filas existentes
+            <div class="form-group">
+                <label for="torn">Torn</label>
+                <input type="text" id="torn" name="torn">
+            </div>
+        </div>
 
-      scheduleData.forEach(item => {
-        const circulating = isCirculating(item, apiRecords);
-        const tr = document.createElement('tr');
-        if (circulating) {
-          tr.classList.add('circulando');
-        }
-        tr.innerHTML = `
-          <td>${item.Tren}</td>
-          <td>${item.Estació}</td>
-          <td>${item.hora}</td>
-          <td>${item.linia}</td>
-          <td>${item.Torn}</td>
-          <td>${circulating ? 'Sí' : 'No'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+        <div class="form-group">
+            <label>Horari</label>
+            <div class="time-range">
+                <div class="time-input">
+                    <input type="time" id="horaInici" aria-label="Hora inici">
+                </div>
+                <div class="time-input">
+                    <input type="time" id="horaFi" aria-label="Hora fi">
+                </div>
+            </div>
+        </div>
 
-    // Función principal para cargar el fichero de horarios y los datos de la API
-    async function loadData() {
-      try {
-        // Cargar el fichero JSON de itinerario
-        const scheduleResponse = await fetch('itinerari_LA51_2_0_1_asc_desc.json');
-        const scheduleData = await scheduleResponse.json();
+        <button class="clear-filters" id="clearFilters">Netejar filtres</button>
+    </div>
 
-        // Llamada a la API de FGC (20 registros por petición)
-        const apiURL = 'https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=20';
-        const apiResponse = await fetch(apiURL);
-        const apiData = await apiResponse.json();
-
-        // Verificar que apiData.records es un array
-        const recordsArray = Array.isArray(apiData.records) ? apiData.records : [];
-        
-        // Procesar los registros de la API. Se asume que la información se encuentra en 'record.fields'
-        const apiRecords = recordsArray.map(record => {
-          const fields = record.fields;
-          return {
-            lin: fields.lin,
-            dir: fields.dir,
-            paradas: parseProperesParades(fields.properes_parades)
-          };
-        });
-
-        // Poblar la tabla combinando la información del fichero y la API
-        populateTable(scheduleData, apiRecords);
-
-        // (Opcional) Puedes actualizar la tabla cada cierto tiempo, por ejemplo, cada minuto:
-        // setInterval(() => populateTable(scheduleData, apiRecords), 60000);
-      } catch (error) {
-        console.error("Error cargando datos:", error);
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', loadData);
-  </script>
+    <div class="loading" id="loading">Carregant...</div>
+    <div class="error-message" id="errorMessage"></div>
+    
+    <div class="result-container" id="resultContainer">
+        <table id="resultats">
+            <h2 id="table-title" style="text-align: center;">Resultats</h2>
+            <thead>
+                <tr>
+                    <th class="row-number">#</th>
+                    <th>A/D</th>
+                    <th>Tren</th>
+                    <th>Estació</th>
+                    <th>Hora</th>
+                    <th>Línia</th>
+                    <th class="extra-col">Torn</th>
+                    <th class="extra-col">Tren_S</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="no-results">
+                    <td colspan="6">Introdueix algun criteri de cerca.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <footer>
+        Itinerari LA51_2 07/2023 ver.sep/2024<br>
+        J_E_O © <span id="current-year"></span>  
+    </footer>
+    <script src="menu.js"></script> <!-- Comportament del menú -->
+    <script src="script.js"></script>
 </body>
 </html>
