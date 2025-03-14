@@ -6,6 +6,10 @@ const DEBOUNCE_DELAY = 300;
 let filterTimeout;
 let filteredData = [];
 
+// Nueva variable global para los registros de la API
+let apiRecords = [];
+
+
 // Elementos del DOM
 const elements = {
     tren: document.getElementById('tren'),
@@ -37,6 +41,90 @@ async function fetchJSON(url) {
     return response.json();
 }
 
+// ===============================================
+// NUEVAS FUNCIONES: API Y FILTRADO DE CIRCULACIÓN
+// ===============================================
+
+// Función para parsear el campo 'properes_parades'
+// que puede contener uno o varios objetos JSON separados por ';'
+function parseProperesParades(paradasStr) {
+    const paradas = [];
+    if (!paradasStr) return paradas;
+    const parts = paradasStr.split(';');
+    parts.forEach(part => {
+      try {
+        const obj = JSON.parse(part);
+        if (obj.parada) {
+          paradas.push(obj.parada);
+        }
+      } catch (e) {
+        console.error("Error al parsear properes_parades:", e);
+      }
+    });
+    return paradas;
+  }
+  
+  // Función para obtener todos los registros de la API
+  // usando paginación de 20 en 20
+  async function fetchAllAPIRecords() {
+    const limit = 20;
+    let offset = 0;
+    let allRecords = [];
+    let totalRecords = Infinity;
+    const baseURL = 'https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records';
+  
+    while (offset < totalRecords) {
+      const url = `${baseURL}?limit=${limit}&offset=${offset}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        // La API devuelve el total de registros en 'nhits' o 'total_count'
+        totalRecords = data.nhits || data.total_count || 0;
+        allRecords = allRecords.concat(data.records);
+        offset += limit;
+      } catch (error) {
+        console.error("Error al obtener registros de la API:", error);
+        break;
+      }
+    }
+    return allRecords;
+  }
+  
+  // Función que determina si un tren del itinerario está circulant
+  // según la información de la API.
+  // Se comprueba que la hora del tren esté en una ventana de ±5 minutos
+  // respecto a la hora actual, y se cotejan:
+  //   - 'linia' (itinerario) con 'lin' (API)
+  //   - 'Torn' (itinerario) con 'dir' (API)
+  //   - 'Estació' (itinerario) aparezca en el array de paradas obtenido de 'properes_parades'
+  function isCirculating(scheduleRecord, apiRecords) {
+    const now = new Date();
+    // Se asume que scheduleRecord.hora tiene formato "HH:MM"
+    const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
+    const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+    
+    // Ventana de 5 minutos en milisegundos
+    const timeWindow = 5 * 60 * 1000;
+    if (Math.abs(now - scheduleTime) > timeWindow) {
+      return false;
+    }
+    
+    // Comparar cada registro de la API
+    for (let record of apiRecords) {
+      const fields = record.fields;
+      if (scheduleRecord.linia === fields.lin && scheduleRecord.Torn === fields.dir) {
+        const stops = parseProperesParades(fields.properes_parades);
+        if (stops.includes(scheduleRecord.Estació)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  // ===============================================
+  // FIN NUEVAS FUNCIONES
+  // ===============================================
+ 
 // Función para cargar las estacions
 async function cargarEstaciones() {
     try {
