@@ -298,40 +298,73 @@ function filterData() {
     }
 }
 
-// Nueva constante para la URL de la API (reemplazar con la URL real)
-const API_URL = 'https://tu-api-url'; // Reemplazar con la URL de la API
+// Nueva constante para la URL de la API
+const API_URL = 'https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records';
 
-// Nueva función para actualizar el estado "circulating" de los trenes
+// Función para obtener todos los datos de la API paginando (limite 20 por petición)
+async function fetchAPITrains() {
+    const rows = 20;
+    let start = 0;
+    let total = 0;
+    let allTrains = [];
+    do {
+        const url = `${API_URL}?rows=${rows}&start=${start}`;
+        const apiResponse = await fetchJSON(url);
+        // La primera petición nos indica el total
+        if (!total) {
+            total = apiResponse.total_count;
+        }
+        allTrains = allTrains.concat(apiResponse.results);
+        start += rows;
+    } while (start < total);
+    return allTrains;
+}
+
+// Función para extraer el nombre de la estación de un registro de la API
+function getApiStation(record) {
+    try {
+        const parsed = JSON.parse(record.properes_parades);
+        return parsed.parada ? parsed.parada.toLowerCase() : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+// Función para actualizar el estado "circulating" de las entradas en filteredData
 async function updateCirculatingStatus() {
     try {
-        const apiData = await fetchJSON(API_URL);
-        // Se asume que apiData es un arreglo de objetos con propiedades: linia, ad y estacio.
+        const apiTrains = await fetchAPITrains();
         const now = new Date();
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        
+
         filteredData.forEach(entry => {
             const entryMinutes = timeToMinutes(entry.hora);
-            // Comprobar que entryMinutes es válido y está en la ventana ±2 minutos de la hora actual
+            // Se comprueba que la hora de la entrada esté en una ventana de ±2 minutos respecto a la hora actual
             if (entryMinutes !== null && Math.abs(entryMinutes - currentMinutes) <= 2) {
-                // Buscar en la respuesta de la API un registro que coincida en linia, ad y estacio
-                const match = apiData.find(apiEntry =>
-                    apiEntry.linia === entry.linia &&
-                    apiEntry.ad === entry.ad &&
-                    apiEntry.estacio.toLowerCase() === entry.estacio.toLowerCase()
-                );
+                // Se busca en los datos de la API un registro que coincida en línea, dirección y estación
+                const match = apiTrains.find(apiRecord => {
+                    const apiLine = apiRecord.lin ? apiRecord.lin.toLowerCase() : '';
+                    const apiDir = apiRecord.dir ? apiRecord.dir.toUpperCase() : '';
+                    const apiEstacio = getApiStation(apiRecord);
+                    return (
+                        apiLine === entry.linia.toLowerCase() &&
+                        apiDir === entry.ad.toUpperCase() &&
+                        apiEstacio === entry.estacio.toLowerCase()
+                    );
+                });
                 entry.circulating = !!match;
             } else {
                 entry.circulating = false;
             }
         });
-        // Vuelve a pintar la tabla para reflejar los cambios
+        // Se actualiza la tabla para reflejar los cambios
         updateTable();
     } catch (error) {
-        console.error("Error actualizando el estado de trenes circulantes:", error);
+        console.error("Error actualizando el estado de los trenes circulantes:", error);
     }
 }
 
-// Modificación en updateTable() para marcar filas de trenes circulantes
+// Modificar updateTable() para marcar las filas cuyos trenes estén circulando
 function updateTable() {
     const tbody = elements.resultats.querySelector('tbody');
     tbody.innerHTML = '';
@@ -348,7 +381,7 @@ function updateTable() {
 
     itemsToShow.forEach((entry, index) => {
         const row = document.createElement('tr');
-        // Si el tren está circulando, se añade una clase para marcarlo
+        // Si el tren está circulando, se añade la clase 'circulating'
         if (entry.circulating) {
             row.classList.add('circulating');
         }
@@ -368,19 +401,18 @@ function updateTable() {
         const trainLink = row.querySelector('.train-link');
         trainLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters(); // Limpiar filtros existentes
+            clearFilters();
             elements.tren.value = entry.tren;
             filterData();
         });
-        // Listener para el enlace del tren_s
+        // Listener para el enlace del tren secundario
         const trainSLink = row.querySelector('.train-s-link');
         trainSLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters(); // Limpiar filtros existentes
+            clearFilters();
             elements.tren.value = entry.tren_s;
             filterData();
         });
-
         fragment.appendChild(row);
     });
 
