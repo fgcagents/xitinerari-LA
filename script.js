@@ -97,28 +97,26 @@ async function fetchAllAPIRecords() {
 //   - 'Torn' (itinerario) con 'dir' (API)
 //   - 'Estació' (itinerario) aparezca en el array de paradas obtenido de 'properes_parades'
 function isCirculating(scheduleRecord, apiRecords) {
-  const now = new Date();
-  // Se asume que scheduleRecord.hora tiene formato "HH:MM"
-  const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
-  const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
-  
-  // Ventana de 5 minutos en milisegundos
-  const timeWindow = 5 * 60 * 1000;
-  if (Math.abs(now - scheduleTime) > timeWindow) {
-    return false;
-  }
-  
-  // Comparar cada registro de la API
-  for (let record of apiRecords) {
-    const fields = record.fields;
-    if (scheduleRecord.linia === fields.lin && scheduleRecord.Torn === fields.dir) {
-      const stops = parseProperesParades(fields.properes_parades);
-      if (stops.includes(scheduleRecord.Estació)) {
-        return true;
-      }
+    const now = new Date();
+    const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
+    const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+    
+    const timeWindow = 5 * 60 * 1000;
+    if (Math.abs(now - scheduleTime) > timeWindow) {
+        return false;
     }
-  }
-  return false;
+    
+    for (let record of apiRecords) {
+        if (!record || !record.fields) continue;
+        const fields = record.fields;
+        if (scheduleRecord.linia === fields.lin && scheduleRecord.torn === fields.dir) {
+            const stops = parseProperesParades(fields.properes_parades);
+            if (stops.includes(scheduleRecord.estacio)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 // ===============================================
 // FIN NUEVAS FUNCIONES
