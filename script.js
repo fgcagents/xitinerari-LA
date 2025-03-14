@@ -107,10 +107,10 @@ function isCirculating(scheduleRecord, apiRecords) {
     }
     
     for (let record of apiRecords) {
-        if (!record || !record.fields) continue;
-        const fields = record.fields;
-        if (scheduleRecord.linia === fields.lin && scheduleRecord.torn === fields.dir) {
-            const stops = parseProperesParades(fields.properes_parades);
+        // Si no existe 'fields', usamos el registro directamente
+        const rec = record.fields ? record.fields : record;
+        if (scheduleRecord.linia === rec.lin && scheduleRecord.torn === rec.dir) {
+            const stops = parseProperesParades(rec.properes_parades);
             if (stops.includes(scheduleRecord.estacio)) {
                 return true;
             }
