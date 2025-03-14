@@ -381,9 +381,9 @@ function isCirculating(scheduleRecord, apiRecords) {
 async function updateCirculatingStatus() {
     try {
         // Obtén todos los registros de la API (con paginación)
-        const apiResponse = await fetchAPITrains();
+        const apiRecordsRaw = await fetchAPITrains();
         // Procesa los registros de la API para normalizarlos
-        const apiRecords = apiResponse.results.map(record => {
+        const apiRecords = apiRecordsRaw.map(record => {
             return {
                 lin: record.lin,
                 dir: record.dir,
@@ -402,7 +402,6 @@ async function updateCirculatingStatus() {
         console.error("Error actualizando el estado de los trenes circulantes:", error);
     }
 }
-
 // Modificar updateTable() para marcar las filas cuyos trenes estén circulando
 function updateTable() {
     const tbody = elements.resultats.querySelector('tbody');
