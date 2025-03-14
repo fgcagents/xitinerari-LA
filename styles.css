@@ -78,7 +78,7 @@ input:focus, select:focus {
     animation: fadeIn 0.3s ease;
 }
 
-.circulating {
+.circulando {
     background-color: #e0ffe0;
 }
 
