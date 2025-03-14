@@ -39,6 +39,9 @@ async function fetchAllTrains() {
             updateTable();
         }
         
+        // Añadir log para depuración
+        console.log(`Obtenidos ${allTrains.length} trenes en circulación`);
+        
         return allTrains;
     } catch (error) {
         console.error('Error al obtener datos de trenes en circulación:', error);
@@ -51,24 +54,29 @@ async function fetchAllTrains() {
 
 // Función para parsear el campo 'properes_parades' de la API
 function parseProperesParades(paradasStr) {
+    if (!paradasStr) return [];
+    
     const paradas = [];
     try {
         // Intentar parsear como JSON
         const obj = JSON.parse(paradasStr);
-        if (obj.parada) {
+        if (obj && obj.parada) {
             paradas.push(obj.parada);
         }
     } catch (e) {
         // Si falla, intentar parsear como múltiples objetos JSON separados por ';'
         const parts = paradasStr.split(';');
         parts.forEach(part => {
+            if (!part.trim()) return;
+            
             try {
                 const obj = JSON.parse(part);
-                if (obj.parada) {
+                if (obj && obj.parada) {
                     paradas.push(obj.parada);
                 }
             } catch (innerError) {
                 // Ignorar errores de parseo individuales
+                console.warn(`Error al parsear parada: ${part}`, innerError);
             }
         });
     }
@@ -79,7 +87,7 @@ function parseProperesParades(paradasStr) {
 function processCirculatingTrains(apiData) {
     circulating = apiData.map(train => {
         // Extraer las próximas paradas
-        const paradas = parseProperesParades(train.properes_parades);
+        const paradas = parseProperesParades(train.properes_parades || '');
         
         return {
             id: train.id,
@@ -95,13 +103,21 @@ function processCirculatingTrains(apiData) {
         };
     });
     
+    // Añadir log para depuración
     console.log(`Procesados ${circulating.length} trenes en circulación`);
+    console.log('Ejemplos de datos procesados:', circulating.slice(0, 2));
 }
 
 // Función para determinar si un tren está circulando según los datos de la API
 function isTrainCirculating(entry) {
+    // Añadir log para depuración
+    console.log('Verificando si está circulando:', entry);
+    
     // Si no hay datos de circulación, no podemos determinar si está circulando
-    if (!circulating.length) return false;
+    if (!circulating || !circulating.length) {
+        console.log('No hay datos de circulación');
+        return false;
+    }
     
     // Obtener la hora actual
     const now = new Date();
@@ -111,11 +127,15 @@ function isTrainCirculating(entry) {
     const trainTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
     
     // Ventana de tiempo (en minutos) para considerar que un tren está circulando
-    const TIME_WINDOW_MINUTES = 5;
+    const TIME_WINDOW_MINUTES = 15; // Aumentado para dar más margen
     const timeWindow = TIME_WINDOW_MINUTES * 60 * 1000; // Convertir a milisegundos
     
     // Verificar si la hora del tren está dentro de la ventana de tiempo actual
-    if (Math.abs(now - trainTime) > timeWindow) {
+    const timeDiff = Math.abs(now - trainTime);
+    console.log(`Diferencia de tiempo: ${timeDiff} ms (máx permitido: ${timeWindow} ms)`);
+    
+    if (timeDiff > timeWindow) {
+        console.log('Fuera de la ventana de tiempo');
         return false;
     }
     
@@ -123,18 +143,23 @@ function isTrainCirculating(entry) {
     for (let train of circulating) {
         // Comprobar si coincide la línea y la dirección
         if (train.lin === entry.linia && train.dir === entry.ad) {
+            console.log('Coincidencia en línea y dirección:', train.lin, train.dir);
+            
             // Comprobar si la estación está en las próximas paradas
-            if (train.paradas.includes(entry.estacio)) {
+            if (train.paradas && train.paradas.includes(entry.estacio)) {
+                console.log('Estación en próximas paradas');
                 return true;
             }
             
             // Si el tren está estacionado en esta estación
             if (train.estacionat === entry.estacio) {
+                console.log('Tren estacionado en esta estación');
                 return true;
             }
         }
     }
     
+    console.log('No coincide con ningún tren en circulación');
     return false;
 }
 
@@ -143,102 +168,79 @@ function updateTableWithCirculationInfo() {
     // Obtener todas las filas de la tabla
     const rows = elements.resultats.querySelectorAll('tbody tr');
     
+    // Añadir log para depuración
+    console.log(`Actualizando información de circulación para ${rows.length} filas`);
+    
     // Iterar sobre cada fila
-    rows.forEach(row => {
+    rows.forEach((row, index) => {
         // Obtener los datos de la fila
-        const tren = row.querySelector('td:nth-child(3)').textContent;
-        const estacio = row.querySelector('td:nth-child(4)').textContent;
-        const hora = row.querySelector('td:nth-child(5)').textContent;
-        const linia = row.querySelector('td:nth-child(6)').textContent;
-        const ad = row.querySelector('td:nth-child(2)').textContent;
-        
-        // Crear un objeto con los datos para verificar si está circulando
-        const entry = {
-            tren: tren,
-            estacio: estacio,
-            hora: hora,
-            linia: linia,
-            ad: ad
-        };
-        
-        // Verificar si el tren está circulando
-        const isCirculating = isTrainCirculating(entry);
-        
-        // Aplicar la clase CSS correspondiente
-        if (isCirculating) {
-            row.classList.add('circulando');
-        } else {
-            row.classList.remove('circulando');
+        // NOTA: Ajustar estos índices según la estructura real de la tabla
+        try {
+            const cells = row.querySelectorAll('td');
+            
+            // Verificar que hay suficientes celdas
+            if (cells.length < 6) {
+                console.warn(`Fila ${index} no tiene suficientes celdas: ${cells.length}`);
+                return;
+            }
+            
+            // Este índice puede variar según la estructura real de la tabla - añadir depuración
+            console.log(`Contenido de celdas en fila ${index}:`, Array.from(cells).map(cell => cell.textContent.trim()));
+            
+            const tren = cells[2].textContent.trim();
+            const estacio = cells[3].textContent.trim();
+            const hora = cells[4].textContent.trim();
+            const linia = cells[5].textContent.trim();
+            const ad = cells[1].textContent.trim();
+            
+            // Crear un objeto con los datos para verificar si está circulando
+            const entry = {
+                tren: tren,
+                estacio: estacio,
+                hora: hora,
+                linia: linia,
+                ad: ad
+            };
+            
+            // Verificar si el tren está circulando
+            const isCirculating = isTrainCirculating(entry);
+            
+            // Aplicar la clase CSS correspondiente
+            if (isCirculating) {
+                row.classList.add('circulando');
+                console.log(`Fila ${index} marcada como circulando`);
+            } else {
+                row.classList.remove('circulando');
+            }
+        } catch (error) {
+            console.error(`Error al procesar fila ${index}:`, error);
         }
     });
 }
 
 // Modificar la función updateTable para incluir la información de circulación
-const originalUpdateTable = updateTable;
-updateTable = function() {
-    // Llamar a la función original
-    originalUpdateTable();
-    
-    // Actualizar con la información de circulación
-    updateTableWithCirculationInfo();
-    
-    // Mostrar la información de la última actualización de la API
-    if (lastApiUpdate) {
-        const apiUpdateInfo = document.getElementById('api-update-info');
-        if (!apiUpdateInfo) {
-            const infoDiv = document.createElement('div');
-            infoDiv.id = 'api-update-info';
-            infoDiv.className = 'api-update-info';
-            elements.resultContainer.appendChild(infoDiv);
-        }
-        document.getElementById('api-update-info').textContent = `Última actualización: ${lastApiUpdate.toLocaleTimeString()}`;
-    }
-};
-
-// Función para agregar un botón para actualizar los datos de la API
-function addApiUpdateButton() {
-    const container = document.querySelector('.filters-container');
-    if (!container) return;
-    
-    // Crear el botón solo si no existe
-    if (!document.getElementById('update-api-button')) {
-        const button = document.createElement('button');
-        button.id = 'update-api-button';
-        button.textContent = 'Actualizar trenes en circulación';
-        button.className = 'clear-filters';
-        button.addEventListener('click', fetchAllTrains);
+let originalUpdateTable;
+if (typeof updateTable !== 'undefined') {
+    originalUpdateTable = updateTable;
+    updateTable = function() {
+        // Llamar a la función original
+        originalUpdateTable();
         
-        container.appendChild(button);
-    }
+        // Actualizar con la información de circulación
+        updateTableWithCirculationInfo();
+        
+        // Mostrar la información de la última actualización de la API
+        if (lastApiUpdate) {
+            const apiUpdateInfo = document.getElementById('api-update-info');
+            if (!apiUpdateInfo) {
+                const infoDiv = document.createElement('div');
+                infoDiv.id = 'api-update-info';
+                infoDiv.className = 'api-update-info';
+                elements.resultContainer.appendChild(infoDiv);
+            }
+            document.getElementById('api-update-info').textContent = `Última actualización: ${lastApiUpdate.toLocaleTimeString()}`;
+        }
+    };
+} else {
+    console.error('La función updateTable no está definida');
 }
-
-// Modificar la función init para incluir la carga de datos de la API
-const originalInit = init;
-init = async function() {
-    // Llamar a la función original
-    await originalInit();
-    
-    // Añadir estilos CSS para los trenes en circulación
-    const style = document.createElement('style');
-    style.textContent = `
-        .circulando {
-            background-color: #a8e6a1;
-        }
-        .api-update-info {
-            font-size: 0.8em;
-            color: #666;
-            margin-top: 5px;
-            text-align: right;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Añadir el botón para actualizar datos de la API
-    addApiUpdateButton();
-    
-    // Cargar los datos de la API
-    await fetchAllTrains();
-    
-    // Configurar actualización periódica (cada 5 minutos)
-    setInterval(fetchAllTrains, 5 * 60 * 1000);
-};
