@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Trenes en Circulación</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .circulando {
+      background-color: #a8e6a1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Trenes en Horario y Circulando</h1>
+  <table id="trenesTable">
+    <thead>
+      <tr>
+        <th>Tren</th>
+        <th>Estació</th>
+        <th>Hora</th>
+        <th>Línia</th>
+        <th>Torn</th>
+        <th>Circulando</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Función para parsear el campo 'properes_parades' que puede contener uno o varios objetos JSON separados por ';'
+    function parseProperesParades(paradasStr) {
+      const paradas = [];
+      if (!paradasStr) return paradas;
+      const parts = paradasStr.split(';');
+      parts.forEach(part => {
+        try {
+          const obj = JSON.parse(part);
+          if (obj.parada) {
+            paradas.push(obj.parada);
+          }
+        } catch (e) {
+          console.error("Error al parsear properes_parades:", e);
+        }
+      });
+      return paradas;
+    }
+
+    // Función que determina si un tren del horario está circulando según la API
+    // Se considera una ventana de ±5 minutos respecto a la hora actual
+    function isCirculating(scheduleRecord, apiRecords) {
+      const now = new Date();
+      // Suponemos que el campo 'hora' está en formato "HH:MM"
+      const [hour, minute] = scheduleRecord.hora.split(':').map(Number);
+      const scheduleTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+      
+      // Ventana de 5 minutos en milisegundos
+      const timeWindow = 5 * 60 * 1000;
+      if (Math.abs(now - scheduleTime) > timeWindow) {
+        return false;
+      }
+      
+      // Comparar línea, sentido y que la estación esté entre las paradas de la API
+      for (let record of apiRecords) {
+        if (scheduleRecord.linia === record.lin && scheduleRecord.Torn === record.dir) {
+          if (record.paradas.includes(scheduleRecord.Estació)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Función para poblar la tabla HTML con los datos procesados
+    function populateTable(scheduleData, apiRecords) {
+      const tbody = document.querySelector('#trenesTable tbody');
+      tbody.innerHTML = ''; // Limpiar filas existentes
+
+      scheduleData.forEach(item => {
+        const circulating = isCirculating(item, apiRecords);
+        const tr = document.createElement('tr');
+        if (circulating) {
+          tr.classList.add('circulando');
+        }
+        tr.innerHTML = `
+          <td>${item.Tren}</td>
+          <td>${item.Estació}</td>
+          <td>${item.hora}</td>
+          <td>${item.linia}</td>
+          <td>${item.Torn}</td>
+          <td>${circulating ? 'Sí' : 'No'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Función principal para cargar el fichero de horarios y los datos de la API
+    async function loadData() {
+      try {
+        // Cargar el fichero JSON de itinerario
+        const scheduleResponse = await fetch('itinerari_LA51_2_0_1_asc_desc.json');
+        const scheduleData = await scheduleResponse.json();
+
+        // Llamada a la API de FGC (20 registros por petición)
+        const apiURL = 'https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=20';
+        const apiResponse = await fetch(apiURL);
+        const apiData = await apiResponse.json();
+
+        // Procesar los registros de la API. Se asume que la información se encuentra en 'record.fields'
+        const apiRecords = apiData.records.map(record => {
+          const fields = record.fields;
+          return {
+            lin: fields.lin,
+            dir: fields.dir,
+            paradas: parseProperesParades(fields.properes_parades)
+          };
+        });
+
+        // Poblar la tabla combinando la información del fichero y la API
+        populateTable(scheduleData, apiRecords);
+
+        // (Opcional) Puedes actualizar la tabla cada cierto tiempo, por ejemplo, cada minuto:
+        // setInterval(() => populateTable(scheduleData, apiRecords), 60000);
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
