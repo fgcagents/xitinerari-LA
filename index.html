@@ -117,8 +117,11 @@
         const apiResponse = await fetch(apiURL);
         const apiData = await apiResponse.json();
 
+        // Verificar que apiData.records es un array
+        const recordsArray = Array.isArray(apiData.records) ? apiData.records : [];
+        
         // Procesar los registros de la API. Se asume que la información se encuentra en 'record.fields'
-        const apiRecords = apiData.records.map(record => {
+        const apiRecords = recordsArray.map(record => {
           const fields = record.fields;
           return {
             lin: fields.lin,
