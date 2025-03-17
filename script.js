@@ -322,7 +322,7 @@ function updateTable() {
         const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
 
         // Verificar si el tren de itinerario coincide con alguno en circulación (API)
-        let apiMatch = null;
+        /*let apiMatch = null;*/
         if (allResults.length > 0 && apiTimestamp) {
             const candidates = allResults.filter(item => {
                 const candidateStation = extractProperaParada(item);
