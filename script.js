@@ -305,105 +305,115 @@ function filterData() {
 function updateTable() {
     const tbody = elements.resultats.querySelector('tbody');
     tbody.innerHTML = '';
-
+  
     if (!filteredData.length) {
-        elements.resultContainer.style.display = 'none';
-        return;
+      elements.resultContainer.style.display = 'none';
+      return;
     }
-
+  
     const fragment = document.createDocumentFragment();
     const startIndex = currentPage * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const itemsToShow = filteredData.slice(startIndex, endIndex);
-
+  
     itemsToShow.forEach((entry, index) => {
-        const row = document.createElement('tr');
-        const rowNumber = startIndex + index + 1;
-        const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
-
-        // Verificar si el tren de itinerario coincide con alguno en circulación (API)
-        let apiMatch = null;
-        if (allResults.length > 0 && apiTimestamp) {
-            const candidates = allResults.filter(item => {
-                const candidateStation = extractProperaParada(item);
-                return item.lin.toLowerCase() === entry.linia.toLowerCase() &&
-                       item.dir.toLowerCase() === entry.ad.toLowerCase() &&
-                       candidateStation.toLowerCase() === entry.estacio.toLowerCase();
+      const row = document.createElement('tr');
+      const rowNumber = startIndex + index + 1;
+      let apiMatch = null;
+  
+      // Verifica que haya datos de la API y un timestamp válido
+      if (allResults.length > 0 && apiTimestamp) {
+        const itineraryTime = timeToMinutes(entry.hora);
+        const apiTimeMin = apiTimestamp.getHours() * 60 + apiTimestamp.getMinutes();
+  
+        // Compara que la hora del itinerario esté entre el timestamp y +3 minutos
+        if (itineraryTime !== null && itineraryTime >= apiTimeMin && itineraryTime <= (apiTimeMin + 3)) {
+          // Filtra candidatos que coincidan en línea, dirección y estación
+          const candidates = allResults.filter(item => {
+            const candidateStation = extractProperaParada(item);
+            return item.lin.toLowerCase() === entry.linia.toLowerCase() &&
+                   item.dir.toLowerCase() === entry.ad.toLowerCase() &&
+                   candidateStation.toLowerCase() === entry.estacio.toLowerCase();
+          });
+          if (candidates.length > 0) {
+            // Opcional: ordenar los candidatos por cercanía en tiempo al timestamp
+            candidates.sort((a, b) => {
+              const aTime = timeToMinutes(a.hora);
+              const bTime = timeToMinutes(b.hora);
+              return Math.abs(aTime - apiTimeMin) - Math.abs(bTime - apiTimeMin);
             });
-            if (candidates.length > 0) {
-                // Comparamos el campo "hora" de los candidatos con el apiTimestamp.
-                const apiTimeMin = apiTimestamp.getHours() * 60 + apiTimestamp.getMinutes();
-                candidates.sort((a, b) => {
-                    const aTime = timeToMinutes(a.hora);
-                    const bTime = timeToMinutes(b.hora);
-                    const diffA = aTime !== null ? Math.abs(aTime - apiTimeMin) : Infinity;
-                    const diffB = bTime !== null ? Math.abs(bTime - apiTimeMin) : Infinity;
-                    return diffA - diffB;
-                });
-                apiMatch = candidates[0];
-                // Se asigna internamente la ID de la API para seguimiento
-                entry.api_id = apiMatch.id;
-            }
+            apiMatch = candidates[0];
+            // Asigna la id de la API para seguimiento
+            entry.api_id = apiMatch.id;
+          }
         }
-
-        // Si el tren está en circulación, se marca en verde
-        const trenDisplay = apiMatch 
-            ? `<a href="#" class="train-link" data-train="${entry.tren}" style="color:green;">${entry.tren}</a>`
-            : `<a href="#" class="train-link" data-train="${entry.tren}">${entry.tren}</a>`;
-
-        row.innerHTML = `
-            <td class="row-number">${rowNumber}</td>
-            <td>${entry.ad}</td>
-            <td>${trenDisplay}</td>
-            <td>${entry.estacio}</td>
-            <td class="${horaClass}">${entry.hora}</td>
-            <td>${entry.linia}</td>
-            <td class="extra-col">${entry.torn || ''}</td>
-            <td class="extra-col"><a href="#" class="train-s-link" data-train="${entry.tren_s}">${entry.tren_s}</a></td>
-        `;
-
-        // Listener para el enlace del tren principal
-        const trainLink = row.querySelector('.train-link');
-        trainLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            clearFilters(); // Limpiar filtros existentes
-            elements.tren.value = entry.tren;
-            filterData();
-        });
-        // Listener para el enlace del tren secundario
-        const trainSLink = row.querySelector('.train-s-link');
-        trainSLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            clearFilters(); // Limpiar filtros existentes
-            elements.tren.value = entry.tren_s;
-            filterData();
-        });
-
-        fragment.appendChild(row);
+      }
+  
+      // Crea el enlace del tren; si hay match lo muestra en verde
+      const trenLink = document.createElement('a');
+      trenLink.href = '#';
+      trenLink.className = 'train-link';
+      trenLink.dataset.train = entry.tren;
+      trenLink.textContent = entry.tren;
+      if (apiMatch) {
+        trenLink.style.color = 'green';
+      }
+  
+      // Construye la fila de la tabla; en la tercera columna se inserta el enlace creado
+      row.innerHTML = `
+        <td class="row-number">${rowNumber}</td>
+        <td>${entry.ad}</td>
+        <td></td>
+        <td>${entry.estacio}</td>
+        <td>${entry.hora}</td>
+        <td>${entry.linia}</td>
+        <td>${entry.torn || ''}</td>
+        <td><a href="#" class="train-s-link" data-train="${entry.tren_s}">${entry.tren_s}</a></td>
+      `;
+      row.children[2].appendChild(trenLink);
+  
+      // Listener para el enlace del tren principal
+      trenLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearFilters();
+        elements.tren.value = entry.tren;
+        filterData();
+      });
+      // Listener para el enlace del tren secundario
+      const trainSLink = row.querySelector('.train-s-link');
+      trainSLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearFilters();
+        elements.tren.value = entry.tren_s;
+        filterData();
+      });
+  
+      fragment.appendChild(row);
     });
-
+  
     tbody.appendChild(fragment);
     elements.resultContainer.style.display = 'block';
-
+  
+    // Botón para cargar más registros si hay más resultados
     const loadMoreButton = document.getElementById('loadMoreButton');
     if (filteredData.length > endIndex) {
-        if (!loadMoreButton) {
-            const button = document.createElement('button');
-            button.id = 'loadMoreButton';
-            button.textContent = '+ més';
-            button.className = 'clear-filters';
-            button.style.marginTop = '1rem';
-            button.addEventListener('click', () => {
-                currentPage++;
-                updateTable();
-            });
-            elements.resultContainer.appendChild(button);
-        }
+      if (!loadMoreButton) {
+        const button = document.createElement('button');
+        button.id = 'loadMoreButton';
+        button.textContent = '+ més';
+        button.className = 'clear-filters';
+        button.style.marginTop = '1rem';
+        button.addEventListener('click', () => {
+          currentPage++;
+          updateTable();
+        });
+        elements.resultContainer.appendChild(button);
+      }
     } else if (loadMoreButton) {
-        loadMoreButton.remove();
+      loadMoreButton.remove();
     }
-}
-
+  }
+  
 // Extrae la "Propera Parada" de un registro obtenido de la API
 function extractProperaParada(item) {
     if (item.properes_parades) {
