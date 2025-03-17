@@ -1,14 +1,21 @@
-// Variables globals
-let data = [];
+// ===================
+// Script Unificado
+// ===================
+
+// Variables globales para itinerarios
+let data = []; // Datos de itinerarios (JSON)
 let currentPage = 0;
 const ITEMS_PER_PAGE = 33;
 const DEBOUNCE_DELAY = 300;
 let filterTimeout;
 let filteredData = [];
 
-// Variables para la API
-let apiTrainData = [];
-let apiTimestamp = null;
+// Variables para datos de la API
+const API_LIMIT = 20;
+let totalCount = 0;
+let allResults = []; // Datos de trenes en circulación desde la API
+const CACHE_DURATION = 60000; // 60 segundos en milisegundos
+let apiTimestamp = null; // Timestamp de la llamada a la API
 
 // Elementos del DOM
 const elements = {
@@ -41,7 +48,11 @@ async function fetchJSON(url) {
     return response.json();
 }
 
-// Función para cargar las estaciones
+// -------------------------------
+// Funciones para los Itinerarios
+// -------------------------------
+
+// Carga de estaciones desde un fichero JSON
 async function cargarEstaciones() {
     try {
         const estacionesData = await fetchJSON('estacions.json');
@@ -58,7 +69,7 @@ async function cargarEstaciones() {
     }
 }
 
-// Función para actualizar el título de la tabla
+// Actualiza el título de la tabla según la dirección (A/D)
 function updateTableTitle() {
     const select = elements.ad;
     const title = document.getElementById('table-title');
@@ -72,14 +83,14 @@ function updateTableTitle() {
     }
 }
 
-// Función para convertir un string "HH:mm" a minutos desde medianoche
+// Convierte una hora (formato "HH:MM") a minutos
 const timeToMinutes = timeStr => {
     if (!timeStr) return null;
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
 };
 
-// Función para cargar datos desde un fichero JSON de horarios
+// Carga los datos de itinerarios desde un archivo JSON
 async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     try {
         elements.loading.classList.add('visible');
@@ -97,69 +108,7 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     }
 }
 
-// Función para consultar la API y obtener los trenes en circulación
-function fetchApiTrainData(offset = 0) {
-    const limit = 20;
-    const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
-    
-    return fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-            if (offset === 0) {
-                // Guardamos el timestamp de la respuesta de la API
-                apiTimestamp = Date.now();
-            }
-            if (data.results && Array.isArray(data.results)) {
-                apiTrainData = apiTrainData.concat(data.results);
-            }
-            if (offset + limit < data.total_count) {
-                return fetchApiTrainData(offset + limit);
-            }
-        })
-        .catch(error => {
-            console.error('Error al obtener datos de la API:', error);
-        });
-}
-
-// Función para cotejar un registro del itinerario con un registro de la API
-function isTrainCirculating(timetableEntry, apiRecord, apiTimestamp) {
-    // 1. Comprobar la línea: "linia" del fichero vs "lin" de la API
-    if (timetableEntry.linia !== apiRecord.lin) return false;
-    
-    // 2. Comprobar el sentido/dirección: "ad" del fichero vs "dir" de la API
-    if (timetableEntry.ad !== apiRecord.dir) return false;
-    
-    // 3. Extraer la siguiente estación de la API desde properes_parades
-    if (!apiRecord.properes_parades) return false;
-    let nextStation = "";
-    try {
-        const parts = apiRecord.properes_parades.split(";");
-        if (parts.length > 0) {
-            const parsed = JSON.parse(parts[0].trim());
-            nextStation = parsed.parada ? parsed.parada.trim().toLowerCase() : "";
-        }
-    } catch (error) {
-        console.error("Error al parsear properes_parades:", error);
-        return false;
-    }
-    if (!nextStation) return false;
-    
-    // 4. Comprobar que la estación del itinerario coincide con la siguiente estación de la API
-    if (timetableEntry.estacio.trim().toLowerCase() !== nextStation) return false;
-    
-    // 5. Comparar la hora del itinerario con el timestamp de la API (margen ±2 minutos)
-    const apiDate = new Date(apiTimestamp);
-    const apiMinutes = apiDate.getHours() * 60 + apiDate.getMinutes();
-    const scheduledMinutes = timeToMinutes(timetableEntry.hora);
-    
-    if (Math.abs(apiMinutes - scheduledMinutes) <= 2) {
-        return true;
-    }
-    
-    return false;
-}
-
-// Función para registrar los event listeners del menú
+// Inicializa los listeners del menú para cambiar itinerarios
 function initMenuListeners() {
     document.querySelectorAll('.menu a').forEach(link => {
         link.addEventListener('click', async (e) => {
@@ -179,7 +128,7 @@ function initMenuListeners() {
     });
 }
 
-// Función debounce para optimizar llamadas a filterData
+// Función debounce para optimizar las llamadas al filtrado
 function debounce(func, delay) {
     return function (...args) {
         clearTimeout(filterTimeout);
@@ -187,7 +136,7 @@ function debounce(func, delay) {
     };
 }
 
-// Función para limpiar filtros y actualizar la tabla
+// Limpia los filtros y actualiza la tabla
 function clearFilters() {
     elements.tren.value = '';
     elements.linia.value = '';
@@ -201,7 +150,7 @@ function clearFilters() {
     updateTable();
 }
 
-// Función para ordenar resultados basados en la hora
+// Ordena los resultados según la hora
 const sortResultsByTime = results => {
     return results.sort((a, b) => {
         const timeA = timeToMinutes(a.hora);
@@ -229,7 +178,7 @@ function shouldHighlightTime(entry) {
     return isLineaValid && !(isSpecificTrain && entry.ad === "D");
 }
 
-// Función de filtrado principal
+// Función principal de filtrado de itinerarios
 function filterData() {
     const filters = {
         tren: elements.tren.value.trim(),
@@ -253,7 +202,7 @@ function filterData() {
     const horaFiMin = timeToMinutes(filters.horaFi);
 
     if (filters.torn) {
-        // Si se filtra por Torn, se lista un SOLO registro por cada tren cuyo Torn coincida,
+        // Si se filtra por Torn, se lista un solo registro por cada tren cuyo Torn coincida,
         // tomando la estación con el horario más bajo
         filteredData = data
             .filter(item => item.Torn && item.Torn.toLowerCase().includes(filters.torn.toLowerCase()))
@@ -322,7 +271,6 @@ function filterData() {
             .filter(entry => {
                 const entryTimeMin = timeToMinutes(entry.hora);
                 let matchesTimeRange = true;
-
                 if (horaIniciMin !== null) {
                     if (horaFiMin === null) {
                         if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
@@ -338,7 +286,6 @@ function filterData() {
                         }
                     }
                 }
-                
                 return (
                     (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
                     (!filters.linia || entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) &&
@@ -347,14 +294,14 @@ function filterData() {
                     (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
                     matchesTimeRange
                 );
-            })
+            })  
         );
     }
     filteredData = sortResultsByTime(filteredData);
     updateTable();
 }
 
-// Función para actualizar la tabla de resultados, integrando la comparación con la API
+// Actualiza la tabla de itinerarios y, para cada registro, verifica si el tren está circulando según la API
 function updateTable() {
     const tbody = elements.resultats.querySelector('tbody');
     tbody.innerHTML = '';
@@ -372,43 +319,59 @@ function updateTable() {
     itemsToShow.forEach((entry, index) => {
         const row = document.createElement('tr');
         const rowNumber = startIndex + index + 1;
-        
-        // Comprobar si el tren del itinerario está circulando usando el timestamp de la API y los criterios
-        const isCirculating = apiTrainData.some(apiRecord => 
-            isTrainCirculating(entry, apiRecord, apiTimestamp)
-        );
+        const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
 
-        const indicator = isCirculating ? '<span class="circulant-indicator">●</span>' : '';
-        if (isCirculating) {
-            row.classList.add('active-train');
+        // Verificar si el tren de itinerario coincide con alguno en circulación (API)
+        let apiMatch = null;
+        if (allResults.length > 0 && apiTimestamp) {
+            const candidates = allResults.filter(item => {
+                const candidateStation = extractProperaParada(item);
+                return item.lin.toLowerCase() === entry.linia.toLowerCase() &&
+                       item.dir.toLowerCase() === entry.ad.toLowerCase() &&
+                       candidateStation.toLowerCase() === entry.estacio.toLowerCase();
+            });
+            if (candidates.length > 0) {
+                // Si hay múltiples candidatos, se podría elegir el que esté más cercano al timestamp.
+                // Aquí se toma el primero.
+                apiMatch = candidates[0];
+                // Se asigna internamente la ID de la API para seguimiento
+                entry.api_id = apiMatch.id;
+            }
         }
-        
+
+        // Si el tren está en circulación, se marca en verde
+        const trenDisplay = apiMatch 
+            ? `<a href="#" class="train-link" data-train="${entry.tren}" style="color:green;">${entry.tren}</a>`
+            : `<a href="#" class="train-link" data-train="${entry.tren}">${entry.tren}</a>`;
+
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
-            <td><a href="#" class="train-link" data-train="${entry.tren}">${entry.tren} ${indicator}</a></td>
+            <td>${trenDisplay}</td>
             <td>${entry.estacio}</td>
-            <td>${entry.hora}</td>
+            <td class="${horaClass}">${entry.hora}</td>
             <td>${entry.linia}</td>
-            <td class="extra-col">${entry.torn}</td>
+            <td class="extra-col">${entry.torn || ''}</td>
             <td class="extra-col"><a href="#" class="train-s-link" data-train="${entry.tren_s}">${entry.tren_s}</a></td>
         `;
-        
+
+        // Listener para el enlace del tren principal
         const trainLink = row.querySelector('.train-link');
         trainLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters();
+            clearFilters(); // Limpiar filtros existentes
             elements.tren.value = entry.tren;
             filterData();
         });
+        // Listener para el enlace del tren secundario
         const trainSLink = row.querySelector('.train-s-link');
         trainSLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters();
+            clearFilters(); // Limpiar filtros existentes
             elements.tren.value = entry.tren_s;
             filterData();
         });
-        
+
         fragment.appendChild(row);
     });
 
@@ -434,27 +397,106 @@ function updateTable() {
     }
 }
 
-// Función para inicializar los listeners de inputs
+// Extrae la "Propera Parada" de un registro obtenido de la API
+function extractProperaParada(item) {
+    if (item.properes_parades) {
+        try {
+            let parts = item.properes_parades.split(';');
+            if (parts.length > 0) {
+                let firstPart = parts[0].trim();
+                let parsed = JSON.parse(firstPart);
+                return parsed.parada || '';
+            }
+        } catch (error) {
+            console.error("Error al procesar properes_parades:", error);
+        }
+    }
+    return '';
+}
+
+// Inicializa los listeners para los inputs de filtrado
 function initInputListeners() {
     elements.tren.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.ad.addEventListener('change', debounce(filterData, DEBOUNCE_DELAY));
     elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-    elements.torn.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
+    elements.torn.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY)); // Listener para Torn
     elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.clearFilters.addEventListener('click', clearFilters);
 }
 
-// Función de inicialización general
+// -------------------------------
+// Funciones para la API
+// -------------------------------
+
+// Verifica si existen datos en caché válidos
+function isCacheValid() {
+    const cachedTimestamp = localStorage.getItem('lastFetch');
+    if (!cachedTimestamp) return false;
+    const now = Date.now();
+    return (now - parseInt(cachedTimestamp)) < CACHE_DURATION;
+}
+
+// Función recursiva para obtener los datos paginados de la API
+function fetchPage(offset) {
+    // Si es la primera página y hay datos en caché, se utilizan
+    if (offset === 0 && isCacheValid()) {
+        const cachedData = JSON.parse(localStorage.getItem('trainData'));
+        const cachedTimestampVal = new Date(parseInt(localStorage.getItem('lastFetch')));
+        allResults = cachedData.results;
+        totalCount = cachedData.total_count;
+        apiTimestamp = cachedTimestampVal;
+        if(document.getElementById('timestamp')) {
+            document.getElementById('timestamp').textContent = "Timestamp de acceso: " + cachedTimestampVal.toLocaleString();
+        }
+        if(document.getElementById('trainCount')) {
+            document.getElementById('trainCount').textContent = "Trens Circulant: " + totalCount;
+        }
+        return Promise.resolve();
+    }
+
+    const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${API_LIMIT}&offset=${offset}`;
+    return fetch(apiUrl)
+        .then(response => response.json())
+        .then(dataApi => {
+            if (offset === 0 && dataApi.total_count) {
+                totalCount = dataApi.total_count;
+                const now = new Date();
+                apiTimestamp = now;
+                // Guardar en caché
+                localStorage.setItem('trainData', JSON.stringify({
+                    results: dataApi.results,
+                    total_count: dataApi.total_count
+                }));
+                localStorage.setItem('lastFetch', Date.now().toString());
+                if(document.getElementById('timestamp')) {
+                    document.getElementById('timestamp').textContent = "Timestamp de acceso: " + now.toLocaleString();
+                }
+                if(document.getElementById('trainCount')) {
+                    document.getElementById('trainCount').textContent = "Trens Circulant: " + totalCount;
+                }
+            }
+            if (dataApi.results && Array.isArray(dataApi.results)) {
+                allResults = allResults.concat(dataApi.results);
+            }
+            if (offset + API_LIMIT < totalCount) {
+                return fetchPage(offset + API_LIMIT);
+            }
+        })
+        .catch(error => console.error('Error al obtener los datos de la API:', error));
+}
+
+// -------------------------------
+// Inicialización General
+// -------------------------------
 async function init() {
     try {
         elements.resultContainer.style.display = 'none';
         filteredData = [];
-        // Se cargan en paralelo: estaciones, horarios y datos de la API
-        await Promise.all([cargarEstaciones(), loadData(), fetchApiTrainData()]);
-        console.log('Inicialización completada - Datos de horarios y trenes circulant cargados');
-        updateTable();
+        // Cargar en paralelo: estaciones, itinerarios y datos de la API
+        await Promise.all([cargarEstaciones(), loadData(), fetchPage(0)]);
+        console.log('Inicialización completada - La tabla permanece oculta');
     } catch (error) {
         console.error('Error durante la inicialización:', error);
         showError('Error al inicializar la aplicación');
