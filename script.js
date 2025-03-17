@@ -331,8 +331,15 @@ function updateTable() {
                        candidateStation.toLowerCase() === entry.estacio.toLowerCase();
             });
             if (candidates.length > 0) {
-                // Si hay múltiples candidatos, se podría elegir el que esté más cercano al timestamp.
-                // Aquí se toma el primero.
+                // Comparamos el campo "hora" de los candidatos con el apiTimestamp.
+                const apiTimeMin = apiTimestamp.getHours() * 60 + apiTimestamp.getMinutes();
+                candidates.sort((a, b) => {
+                    const aTime = timeToMinutes(a.hora);
+                    const bTime = timeToMinutes(b.hora);
+                    const diffA = aTime !== null ? Math.abs(aTime - apiTimeMin) : Infinity;
+                    const diffB = bTime !== null ? Math.abs(bTime - apiTimeMin) : Infinity;
+                    return diffA - diffB;
+                });
                 apiMatch = candidates[0];
                 // Se asigna internamente la ID de la API para seguimiento
                 entry.api_id = apiMatch.id;
