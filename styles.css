@@ -315,6 +315,12 @@ th.row-number {
     -webkit-overflow-scrolling: touch;
 }
 
+.active-train {
+  color: #28a745 !important;
+  font-weight: 700;
+  border-bottom: 2px solid #218838;
+}
+
 a.train-link {
     color: rgb(46, 46, 78);
     text-decoration: none;
