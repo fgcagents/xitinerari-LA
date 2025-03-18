@@ -1,4 +1,4 @@
-// Variables globales
+// Configuración global
 const APP_CONFIG = {
     itemsPerPage: 33,
     debounceDelay: 300,
@@ -6,6 +6,7 @@ const APP_CONFIG = {
     apiEndpoint: 'https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=20'
 };
 
+// Estado de la aplicación
 let appState = {
     data: [],
     filteredData: [],
@@ -58,11 +59,13 @@ const getLiveTrains = () => {
 const refreshAPICache = async () => {
     try {
         const response = await fetch(APP_CONFIG.apiEndpoint);
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
         localStorage.setItem('trainData', JSON.stringify(data));
         localStorage.setItem('lastFetch', Date.now().toString());
     } catch (error) {
         console.error('Error actualizando caché API:', error);
+        showError('Error al actualizar datos en tiempo real');
     }
 };
 
@@ -76,6 +79,23 @@ const shouldHighlightTime = entry => {
     };
     const specificTrains = ["N334", "P336", "P362", "N364", "P364", "N366", "P366"];
     return estaciones[entry.linia]?.includes(entry.estacio) && !(specificTrains.includes(entry.tren) && entry.ad === "D");
+};
+
+const checkActiveTrain = (entry, apiData) => {
+    const entryTime = timeToMinutes(entry.hora);
+    const apiTimestamp = parseInt(localStorage.getItem('lastFetch'));
+    const apiDate = new Date(apiTimestamp);
+    const apiTime = apiDate.getHours() * 60 + apiDate.getMinutes();
+
+    return apiData.some(apiTrain => {
+        const primeraParada = apiTrain.properes_parades?.split(';')[0]?.trim();
+        return (
+            apiTrain.lin === entry.linia &&
+            apiTrain.dir === entry.ad &&
+            primeraParada?.includes(entry.estacio) &&
+            Math.abs(entryTime - apiTime) <= 3
+        );
+    });
 };
 
 const createTableRow = (entry, rowNumber, apiData) => {
@@ -98,21 +118,6 @@ const createTableRow = (entry, rowNumber, apiData) => {
 
     addRowEventListeners(row, entry);
     return row;
-};
-
-const checkActiveTrain = (entry, apiData) => {
-    const entryTime = timeToMinutes(entry.hora);
-    const apiTimestamp = parseInt(localStorage.getItem('lastFetch'));
-    const apiDate = new Date(apiTimestamp);
-    const apiTime = apiDate.getHours() * 60 + apiDate.getMinutes();
-
-    return apiData.some(apiTrain => {
-        const primeraParada = apiTrain.properes_parades?.split(';')[0]?.trim();
-        return apiTrain.lin === entry.linia &&
-               apiTrain.dir === entry.ad &&
-               primeraParada?.includes(entry.estacio) &&
-               Math.abs(entryTime - apiTime) <= 3;
-    });
 };
 
 const addRowEventListeners = (row, entry) => {
