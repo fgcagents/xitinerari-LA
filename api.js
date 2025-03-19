@@ -20,20 +20,44 @@ function isCacheValid() {
   return (now - parseInt(cachedTimestamp)) < CACHE_DURATION;
 }
 
-// Funció recursiva per obtenir les dades paginades
+// Funció per transformar un element de l'API al format que tindria la taula
+function transformItem(item, timestampStr) {
+  const obj = {};
+  ['id', 'lin', 'dir', 'origen', 'desti', 'tipus_unitat'].forEach(field => {
+    obj[field] = item[field] || '';
+  });
+  let properaParada = '';
+  if (item.properes_parades) {
+    try {
+      let parts = item.properes_parades.split(';');
+      if (parts.length > 0) {
+        let firstPart = parts[0].trim();
+        let parsed = JSON.parse(firstPart);
+        properaParada = parsed.parada || '';
+      }
+    } catch (error) {
+      console.error("Error al processar properes_parades:", error);
+    }
+  }
+  obj.propera_parada = properaParada;
+  obj.timestamp = timestampStr;
+  return obj;
+}
+
+// Funció recursiva per obtenir totes les pàgines i acumular els resultats
 function fetchPage(offset) {
-  // Primer comprovem si hi ha dades en caché vàlides
+  // Si és la primera pàgina i la cache és vàlida, utilitza-la
   if (offset === 0 && isCacheValid()) {
     const cachedData = JSON.parse(localStorage.getItem('trainData'));
     apiAccessTime = new Date(parseInt(localStorage.getItem('lastFetch')));
     
-    allResults = cachedData.results;
+    allResults = cachedData.results; // Ja estan transformats
     totalCount = cachedData.total_count;
     
     document.getElementById('timestamp').textContent = "Timestamp de acceso: " + apiAccessTime.toLocaleString();
     document.getElementById('trainCount').textContent = "Trens Circulant: " + totalCount;
     
-    return Promise.resolve();
+    return Promise.resolve(allResults);
   }
 
   const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
@@ -43,42 +67,53 @@ function fetchPage(offset) {
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         const now = new Date();
-        apiAccessTime = now; // Assigna el moment d'accés
-          
-        // Guarda les dades a la caché
+        apiAccessTime = now;
+        const timestampStr = formatTime(now);
+        
+        // Transformem la primera pàgina de resultats
+        allResults = data.results.map(item => transformItem(item, timestampStr));
+        
+        // Guarda la cache amb els resultats transformats
         localStorage.setItem('trainData', JSON.stringify({
-          results: data.results,
-          total_count: data.total_count
+          results: allResults,
+          total_count: totalCount
         }));
         localStorage.setItem('lastFetch', Date.now().toString());
         
         document.getElementById('timestamp').textContent = "Timestamp de acceso: " + now.toLocaleString();
         document.getElementById('trainCount').textContent = "Trens Circulant: " + totalCount;
+      } else {
+        // Per les pàgines posteriors, s'utilitza el mateix timestamp
+        const transformedResults = data.results.map(item => transformItem(item, formatTime(apiAccessTime)));
+        allResults = allResults.concat(transformedResults);
       }
       
-      if (data.results && Array.isArray(data.results)) {
-        allResults = allResults.concat(data.results);
-      }
-      
+      // Si encara hi ha més registres, crida recursivament
       if (offset + limit < totalCount) {
         return fetchPage(offset + limit);
+      } else {
+        // Quan s'han carregat totes les pàgines, retorna l'array complet
+        return allResults;
       }
     })
-    .catch(error => console.error('Error al obtenir les dades:', error));
+    .catch(error => {
+      console.error('Error al obtenir les dades:', error);
+      throw error;
+    });
 }
 
 // Funció per refrescar la informació de la API cada 60 segons
 function refreshData() {
-  // Es reinicia la llista de resultats
+  // Es reinicia l'array i es torna a buscar tot
   allResults = [];
   fetchPage(0);
 }
 
 // Inicia la càrrega de dades i programa el refresc cada 60 segons
 document.addEventListener("DOMContentLoaded", function(){
-  fetchPage(0).then(() => {
-    // Ja s'ha actualitzat el timestamp i el compte de trens; 
-    // no es renderitza cap taula, per tant s'ha eliminat la crida a renderTable.
+  fetchPage(0).then((results) => {
+    console.log("Tots els resultats han estat carregats:", results);
+    // Aquí pots fer alguna acció amb tots els resultats si cal
     setInterval(refreshData, 60000);
   });
 });
