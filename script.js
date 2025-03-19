@@ -69,7 +69,7 @@ function updateTableTitle() {
     }
 }
 
-// Funciones de conversión de tiempo
+// Función de conversión de tiempo: convierte "hh:mm" en minutos
 const timeToMinutes = timeStr => {
     if (!timeStr) return null;
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -77,34 +77,38 @@ const timeToMinutes = timeStr => {
 };
 
 // ------------------------------
-// Funciones añadidas para la integración de la API
+// Funciones para la integración de la API
 // ------------------------------
 
-// Función para formatear una fecha a "hh:mm"
-function formatTime(date) {
-    let hours = date.getHours();
-    let minutes = date.getMinutes();
-    return (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+// Función para formatear una fecha según el formato especificado (por defecto "%H:%M")
+function formatTime(date, format = "%H:%M") {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    let formattedTime = format.replace("%H", (hours < 10 ? "0" + hours : hours));
+    formattedTime = formattedTime.replace("%M", (minutes < 10 ? "0" + minutes : minutes));
+    return formattedTime;
 }
 
-// Función para obtener el tiempo de la API (en minutos) a partir de "lastFetch" en localStorage
+// Función para obtener el tiempo de la API en minutos utilizando el formato "HH:MM"
 function getApiTimeMinutes() {
     const lastFetch = localStorage.getItem('lastFetch');
     if (!lastFetch) return null;
     const date = new Date(parseInt(lastFetch));
-    return timeToMinutes(formatTime(date));
+    return timeToMinutes(formatTime(date, "%H:%M"));
 }
 
 // Función para determinar si un registro del itinerario (entry) coincide con un tren en circulación según la API
 function isTrainActive(entry) {
     let apiTimeMin = getApiTimeMinutes();
-    console.log("API Time (min):", apiTimeMin);
-    if (apiTimeMin === null) return false;
     let entryTimeMin = timeToMinutes(entry.hora);
-    // Verificar que la hora del itinerario esté en un intervalo de +3 minutos respecto al tiempo de la API
+    console.log("API Time (min):", apiTimeMin, "Entry Time (min):", entryTimeMin);
+    
+    // Se compara el horario; se puede ajustar el rango de tolerancia si fuese necesario
+    // Aquí mantenemos la lógica de comparación original (+3 minutos)
     if (entryTimeMin < apiTimeMin || entryTimeMin > apiTimeMin + 3) {
         return false;
     }
+    
     // Recorrer los registros de la API almacenados en caché
     for (let i = 0; i < cachedApiData.length; i++) {
         let record = cachedApiData[i];
@@ -112,13 +116,13 @@ function isTrainActive(entry) {
             // Comparar línea y dirección (A/D)
             if (record.lin.toLowerCase() === entry.linia.toLowerCase() &&
                 record.dir === entry.ad) {
-                // Procesar el campo "properes_parades": se trata de una cadena con varios objetos JSON separados por ";"
+                // Procesar el campo "properes_parades": elegir el primer objeto de la lista
                 let paradas = record.properes_parades.split(";");
                 if (paradas.length > 0) {
                     try {
                         let firstObj = JSON.parse(paradas[0]);
                         if (firstObj.parada && firstObj.parada.toLowerCase() === entry.estacio.toLowerCase()) {
-                            // Asignamos la id de la API al registro del itinerario para facilitar el seguimiento
+                            // Asignamos la id de la API al registro del itinerario para facilitar su seguimiento
                             entry.apiId = record.id;
                             return true;
                         }
