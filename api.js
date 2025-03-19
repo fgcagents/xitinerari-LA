@@ -26,7 +26,7 @@ function fetchPage(offset) {
         allResults = cachedData.results;
         totalCount = cachedData.total_count;
         
-        localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
+        localStorage.setItem('timestamp', formatTime(apiAccessTime));
         localStorage.setItem('trainCount', totalCount.toString());
         
         return Promise.resolve();
