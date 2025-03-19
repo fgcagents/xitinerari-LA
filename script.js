@@ -1,6 +1,6 @@
 // Variables globals
 let data = [];
-let cachedApiData = []; // Nova variable per guardar les dades de la cache de l'API
+let cachedApiData = []; // Nueva variable para guardar las dades de la caché de l'API
 let currentPage = 0;
 const ITEMS_PER_PAGE = 33;
 const DEBOUNCE_DELAY = 300;
@@ -76,7 +76,66 @@ const timeToMinutes = timeStr => {
     return hours * 60 + minutes;
 };
 
-// Función per carregar dades des d'un fitxer (JSON)
+// ------------------------------
+// Funciones añadidas para la integración de la API
+// ------------------------------
+
+// Función para formatear una fecha a "hh:mm"
+function formatTime(date) {
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    return (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+}
+
+// Función para obtener el tiempo de la API (en minutos) a partir de "lastFetch" en localStorage
+function getApiTimeMinutes() {
+    const lastFetch = localStorage.getItem('lastFetch');
+    if (!lastFetch) return null;
+    const date = new Date(parseInt(lastFetch));
+    return timeToMinutes(formatTime(date));
+}
+
+// Función para determinar si un registro del itinerario (entry) coincide con un tren en circulación según la API
+function isTrainActive(entry) {
+    let apiTimeMin = getApiTimeMinutes();
+    if (apiTimeMin === null) return false;
+    let entryTimeMin = timeToMinutes(entry.hora);
+    // Verificar que la hora del itinerario esté en un intervalo de +3 minutos respecto al tiempo de la API
+    if (entryTimeMin < apiTimeMin || entryTimeMin > apiTimeMin + 3) {
+        return false;
+    }
+    // Recorrer los registros de la API almacenados en caché
+    for (let i = 0; i < cachedApiData.length; i++) {
+        let record = cachedApiData[i];
+        if (record && record.lin && record.dir && record.properes_parades) {
+            // Comparar línea y dirección (A/D)
+            if (record.lin.toLowerCase() === entry.linia.toLowerCase() &&
+                record.dir === entry.ad) {
+                // Procesar el campo "properes_parades": se trata de una cadena con varios objetos JSON separados por ";"
+                let paradas = record.properes_parades.split(";");
+                if (paradas.length > 0) {
+                    try {
+                        let firstObj = JSON.parse(paradas[0]);
+                        if (firstObj.parada && firstObj.parada.toLowerCase() === entry.estacio.toLowerCase()) {
+                            // Asignamos la id de la API al registro del itinerario para facilitar el seguimiento
+                            entry.apiId = record.id;
+                            return true;
+                        }
+                    } catch (err) {
+                        console.error("Error parsing properes_parades:", err);
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// ------------------------------
+// Fin funciones API
+// ------------------------------
+
+// Función para cargar dades des d'un fitxer (JSON)
 async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     try {
         elements.loading.classList.add('visible');
@@ -94,7 +153,7 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     }
 }
 
-// Nova funció per accedir a la cache de l'API
+// Nueva función para acceder a la caché de la API
 function loadApiCache() {
     const cacheStr = localStorage.getItem('trainData');
     if (cacheStr) {
@@ -255,7 +314,7 @@ function filterData() {
                 );
             });
     } else {
-        // Sense filtre Torn, es llisten totes les estacions (itinerari complet)
+        // Sin filtro Torn, se listan todas las estaciones (itinerario completo)
         filteredData = data.flatMap(item =>
             Object.keys(item)
                 .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
@@ -274,8 +333,8 @@ function filterData() {
 
                 if (horaIniciMin !== null) {
                     if (horaFiMin === null) {
-                        // Si només es proporciona hora d'inici
-                        // Assumim que hores menors a l'hora d'inici són trens de després de mitjanit
+                        // Si sólo se proporciona hora de inicio
+                        // Asumimos que horas menores a la hora de inicio son trens de después de medianoche
                         if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
                             matchesTimeRange = true;
                         } else {
@@ -324,29 +383,38 @@ function updateTable() {
         const row = document.createElement('tr');
         const rowNumber = startIndex + index + 1;
         const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
+        
+        // Verificamos si el tren está activo según la API
+        let activeClass = "";
+        let apiIdAttr = "";
+        if (isTrainActive(entry)) {
+            activeClass = " active-train"; // Se aplicará la clase para colorear en verde
+            apiIdAttr = ` data-api-id="${entry.apiId}"`;
+        }
+        
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
-            <td><a href="#" class="train-link" data-train="${entry.tren}">${entry.tren}</a></td>
+            <td><a href="#" class="train-link${activeClass}" data-train="${entry.tren}"${apiIdAttr}>${entry.tren}</a></td>
             <td>${entry.estacio}</td>
             <td class="${horaClass}">${entry.hora}</td>
             <td>${entry.linia}</td>
             <td class="extra-col">${entry.torn}</td>
             <td class="extra-col"><a href="#" class="train-s-link" data-train="${entry.tren_s}">${entry.tren_s}</a></td>
         `;
-        // Listener per l'enllaç del tren principal
+        // Listener para el enlace del tren principal
         const trainLink = row.querySelector('.train-link');
         trainLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters(); // Neteja els filtres existents
+            clearFilters(); // Limpia los filtros existentes
             elements.tren.value = entry.tren;
             filterData();
         });
-        // Listener per l'enllaç del tren_s
+        // Listener para el enlace del tren_s
         const trainSLink = row.querySelector('.train-s-link');
         trainSLink.addEventListener('click', (e) => {
             e.preventDefault();
-            clearFilters(); // Neteja els filtres existents
+            clearFilters(); // Limpia los filtros existentes
             elements.tren.value = entry.tren_s;
             filterData();
         });
@@ -382,7 +450,7 @@ function initInputListeners() {
     elements.linia.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.ad.addEventListener('change', debounce(filterData, DEBOUNCE_DELAY));
     elements.estacio.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
-    elements.torn.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY)); // Nou listener per Torn
+    elements.torn.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY)); // Nuevo listener para Torn
     elements.horaInici.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.horaFi.addEventListener('input', debounce(filterData, DEBOUNCE_DELAY));
     elements.clearFilters.addEventListener('click', clearFilters);
@@ -394,7 +462,7 @@ async function init() {
         elements.resultContainer.style.display = 'none';
         filteredData = [];
         await Promise.all([cargarEstaciones(), loadData()]);
-        // Carreguem la cache de l'API sense substituir les dades del fitxer JSON
+        // Cargamos la caché de la API sin sustituir los datos del fichero JSON
         cachedApiData = loadApiCache();
         console.log("API Cache carregada:", cachedApiData);
     } catch (error) {
