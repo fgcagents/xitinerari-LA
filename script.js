@@ -98,6 +98,7 @@ function getApiTimeMinutes() {
 // Función para determinar si un registro del itinerario (entry) coincide con un tren en circulación según la API
 function isTrainActive(entry) {
     let apiTimeMin = getApiTimeMinutes();
+    console.log("API Time (min):", apiTimeMin);
     if (apiTimeMin === null) return false;
     let entryTimeMin = timeToMinutes(entry.hora);
     // Verificar que la hora del itinerario esté en un intervalo de +3 minutos respecto al tiempo de la API
