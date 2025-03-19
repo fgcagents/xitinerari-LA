@@ -470,11 +470,6 @@ async function init() {
         // Cargamos la caché de la API sin sustituir los datos del fichero JSON
         cachedApiData = loadApiCache();
         console.log("API Cache carregada:", cachedApiData);
-        cachedApiData.forEach(record => {
-            if (record.properes_parades) {
-                console.log("Registro:", record.id, "properes_parades:", record.properes_parades);
-            }
-        });
     } catch (error) {
         console.error('Error durant la inicialització:', error);
         showError('Error al inicialitzar l\'aplicació');
