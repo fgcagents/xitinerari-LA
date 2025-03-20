@@ -388,8 +388,12 @@ function updateTable() {
 
         // Si el tren está en circulación, se marca la fila en verde
         if (trainMapping[entry.tren]) {
-            row.classList.add("in-circulation");
+            row.querySelector('.train-link').classList.add("in-circulation");
         }
+        
+        /*if (trainMapping[entry.tren]) {
+            row.classList.add("in-circulation");
+        }*/
 
         // Listener para el enlace del tren principal
         const trainLink = row.querySelector('.train-link');
