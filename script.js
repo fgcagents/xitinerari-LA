@@ -124,7 +124,8 @@ function buildTrainMapping() {
                 const scheduledTime = item[key];
                 const scheduledTimeMinutes = timeToMinutes(scheduledTime);
                 if (scheduledTimeMinutes !== null &&
-                    Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 3) {
+                    Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 5) {
+                    /*Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 3) {*/
 
                     // Buscar en la cache de la API un registro que cumpla:
                     // Línea: item.Linia === apiRecord.lin
