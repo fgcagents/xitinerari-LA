@@ -315,7 +315,7 @@ th.row-number {
     -webkit-overflow-scrolling: touch;
 }
 
-.active-train {
+.in-circulation {
   color: #28a745 !important;
   font-weight: 700;
   border-bottom: 2px solid #218838;
