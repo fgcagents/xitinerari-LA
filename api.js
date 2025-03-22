@@ -1,7 +1,7 @@
 const limit = 20;
 let totalCount = 0;
 let allResults = [];
-const CACHE_DURATION = 60000; // 60 segons en milisegons
+const CACHE_DURATION = 60000; // 60 segundos en milisegundos
 let apiAccessTime = null;
 
 function formatTime(date) {
@@ -18,8 +18,8 @@ function isCacheValid() {
     return (now - parseInt(cachedTimestamp)) < CACHE_DURATION;
 }
 
-function fetchPage(offset) {
-    if (offset === 0 && isCacheValid()) {
+function fetchPage(offset, forceRefresh = false) {
+    if (offset === 0 && isCacheValid() && !forceRefresh) {
         const cachedData = JSON.parse(localStorage.getItem('trainData'));
         apiAccessTime = new Date(parseInt(localStorage.getItem('lastFetch')));
         
@@ -38,8 +38,7 @@ function fetchPage(offset) {
         .then(data => {
             if (offset === 0 && data.total_count) {
                 totalCount = data.total_count;
-                const now = new Date();
-                apiAccessTime = now;
+                apiAccessTime = new Date();
             }
             
             if (data.results && Array.isArray(data.results)) {
@@ -47,11 +46,11 @@ function fetchPage(offset) {
             }
             
             if (offset + limit < totalCount) {
-                return fetchPage(offset + limit);
+                return fetchPage(offset + limit, forceRefresh);
             } else {
                 // Guardamos en localStorage SOLO cuando tengamos todos los resultados
                 localStorage.setItem('trainData', JSON.stringify({
-                    results: allResults,  // Aquí guardamos todos los resultados acumulados
+                    results: allResults,
                     total_count: totalCount
                 }));
                 localStorage.setItem('lastFetch', Date.now().toString());
@@ -59,20 +58,19 @@ function fetchPage(offset) {
                 localStorage.setItem('trainCount', totalCount.toString());
             }
 
-            if (offset + limit >= totalCount) {
-                console.log('Total trenes guardados:', allResults.length);
-                console.log('Total trenes en localStorage:', JSON.parse(localStorage.getItem('trainData')).results.length);
-            }
+            console.log('Total trenes guardados:', allResults.length);
+            console.log('Total trenes en localStorage:', JSON.parse(localStorage.getItem('trainData')).results.length);
         })
-        .catch(error => console.error('Error al obtenir les dades:', error));
+        .catch(error => console.error('Error al obtener los datos:', error));
 }
 
 function refreshData() {
     allResults = [];
-    fetchPage(0);
+    // Forzamos la paginación completa ignorando la caché
+    fetchPage(0, true);
 }
 
-// Inicia la càrrega de dades i programa el refresc cada 60 segons
+// Inicia la carga de datos y programa el refresco cada 60 segundos
 document.addEventListener("DOMContentLoaded", function(){
     fetchPage(0).then(() => {
         setInterval(refreshData, 60000);
