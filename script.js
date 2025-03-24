@@ -123,17 +123,19 @@ function buildTrainMapping() {
                 const scheduledTime = item[key];
                 const scheduledTimeMinutes = timeToMinutes(scheduledTime);
 
-                // Buscar en la cache de la API un registro que cumpla las condiciones en el orden deseado:
-                const matchingApiRecord = cachedApiData.find(apiRecord => {
+                // Buscar todos los registros de la API que cumplan las condiciones solicitadas
+                const candidateRecords = cachedApiData.filter(apiRecord => {
                     if (!apiRecord) return false;
 
-                    // 1. Filtrar por Línea
-                    if (item.Linia.toLowerCase() !== (apiRecord.lin || "").toLowerCase()) return false;
+                    // 1. Filtrar por Línea: comparar solo los 2 primeros caracteres
+                    if (item.Linia.substr(0, 2).toLowerCase() !== (apiRecord.lin || "").substr(0, 2).toLowerCase()) 
+                        return false;
 
-                   // 2. Filtrar por Dirección
-                    if (item["A/D"].toLowerCase() !== (apiRecord.dir || "").toLowerCase()) return false;
+                    // 2. Filtrar por Dirección
+                    if (item["A/D"].toLowerCase() !== (apiRecord.dir || "").toLowerCase())
+                        return false;
 
-                    // 3. Filtrar por Estación: Comprobar que la clave coincide con la primera parada o, si se dispone, con la segunda parada para afinar
+                    // 3. Filtrar por Estación: Comprobar que la clave coincide con la primera parada o con la segunda parada (si existe)
                     if (apiRecord.properes_parades) {
                         try {
                             let parts = apiRecord.properes_parades.split(';').map(p => p.trim()).filter(p => p);
@@ -146,8 +148,6 @@ function buildTrainMapping() {
                                 let parsed = JSON.parse(parts[1]);
                                 secondStation = (parsed.parada || "").toLowerCase();
                             }
-                            // Se requiere que la clave coincida con la primera parada;
-                            // si no, se acepta que coincida con la segunda (para afinar)
                             if (key.toLowerCase() === firstStation || (secondStation && key.toLowerCase() === secondStation)) {
                                 return true;
                             }
@@ -161,9 +161,14 @@ function buildTrainMapping() {
                 });
 
                 // 4. Filtrar por la hora: asociar solo si la diferencia es <= 8 minutos
-                if (matchingApiRecord && scheduledTimeMinutes !== null &&
+                if (candidateRecords.length > 0 && scheduledTimeMinutes !== null &&
                     Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 8) {
-                    trainMapping[item.Tren] = matchingApiRecord.id;
+                    
+                    // Buscar el primer registro candidato que tenga una id no asignada aún
+                    const availableRecord = candidateRecords.find(record => !Object.values(trainMapping).includes(record.id));
+                    if (availableRecord) {
+                        trainMapping[item.Tren] = availableRecord.id;
+                    }
                 }
             }
         });
