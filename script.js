@@ -130,7 +130,7 @@ function buildTrainMapping() {
                     // 1. Filtrar por Línea
                     if (item.Linia.toLowerCase() !== (apiRecord.lin || "").toLowerCase()) return false;
 
-                    // 2. Filtrar por Dirección
+                   // 2. Filtrar por Dirección
                     if (item["A/D"].toLowerCase() !== (apiRecord.dir || "").toLowerCase()) return false;
 
                     // 3. Filtrar por Estación: Comprobar que la clave coincide con la primera parada o, si se dispone, con la segunda parada para afinar
@@ -160,9 +160,9 @@ function buildTrainMapping() {
                     return false;
                 });
 
-                // 4. Filtrar por la hora: asociar solo si la diferencia es <= 5 minutos
+                // 4. Filtrar por la hora: asociar solo si la diferencia es <= 8 minutos
                 if (matchingApiRecord && scheduledTimeMinutes !== null &&
-                    Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 5) {
+                    Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 8) {
                     trainMapping[item.Tren] = matchingApiRecord.id;
                 }
             }
