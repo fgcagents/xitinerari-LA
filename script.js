@@ -161,8 +161,12 @@ function buildTrainMapping() {
                 });
 
                 // 4. Filtrar por la hora: asociar solo si la diferencia es <= 8 minutos
-                if (candidateRecords.length > 0 && scheduledTimeMinutes !== null &&
-                    Math.abs(scheduledTimeMinutes - currentTimeMinutes) <= 8) {
+                if (
+                    candidateRecords.length > 0 &&
+                    scheduledTimeMinutes !== null &&
+                    (scheduledTimeMinutes - currentTimeMinutes) >= -1 &&
+                    (scheduledTimeMinutes - currentTimeMinutes) <= 5
+                ) {
                     
                     // Buscar el primer registro candidato que tenga una id no asignada aún
                     const availableRecord = candidateRecords.find(record => !Object.values(trainMapping).includes(record.id));
