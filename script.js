@@ -490,16 +490,10 @@ async function init() {
     }
     
     // Actualizar el mapeo y la tabla cada 60 segundos para sincronizar con la API
-    setInterval(async () => {
-        try {
-            // Actualizar la cache de la API forzando la recogida completa de datos
-            await fetchPage(0, true); // Llama a la función fetchPage definida en [api.js](c:\Users\josep\Documents\GitHub\xitinerari-LA\api.js)
-            cachedApiData = loadApiCache();
-            buildTrainMapping();
-            updateTable();
-        } catch (error) {
-            console.error('Error actualizando la cache de la API:', error);
-        }
+    setInterval(() => {
+        cachedApiData = loadApiCache();
+        buildTrainMapping();
+        updateTable();
     }, 60000);
 }
 
