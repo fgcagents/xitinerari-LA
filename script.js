@@ -95,13 +95,14 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     }
 }
 
-// Nova funció per accedir a la cache de l'API
+// Modificar la función loadApiCache para validar la estructura
 function loadApiCache() {
     const cacheStr = localStorage.getItem('trainData');
     if (cacheStr) {
         try {
             const cacheObj = JSON.parse(cacheStr);
-            return cacheObj.results || [];
+            // Asegurar que la estructura es correcta
+            return Array.isArray(cacheObj?.results) ? cacheObj.results : [];
         } catch (err) {
             console.error("Error parsing API cache:", err);
         }
@@ -114,6 +115,12 @@ function buildTrainMapping() {
     trainMapping = {}; // Reiniciamos el mapeo
     const now = new Date();
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Limpiar mapeos antiguos
+    Object.keys(trainMapping).forEach(train => {
+        const item = data.find(d => d.Tren === train);
+        if (!item) delete trainMapping[train];
+    });
 
     data.forEach(item => {
         // Claves a excluir (no son estaciones)
@@ -167,11 +174,20 @@ function buildTrainMapping() {
                     (scheduledTimeMinutes - currentTimeMinutes) >= -1 &&
                     (scheduledTimeMinutes - currentTimeMinutes) <= 5
                 ) {
+                     // Buscar todos los registros candidatos no asignados
+                     const availableRecords = candidateRecords.filter(record => 
+                     !Object.values(trainMapping).includes(record.id)
+                 );
                     
                     // Buscar el primer registro candidato que tenga una id no asignada aún
-                    const availableRecord = candidateRecords.find(record => !Object.values(trainMapping).includes(record.id));
-                    if (availableRecord) {
-                        trainMapping[item.Tren] = availableRecord.id;
+                    if (!trainMapping[item.Tren] && availableRecords.length > 0) {
+                        // Tomar el registro con menor diferencia de tiempo
+                        const bestRecord = availableRecords.reduce((prev, current) => {
+                            const prevDiff = Math.abs(scheduledTimeMinutes - timeToMinutes(prev.hora));
+                            const currDiff = Math.abs(scheduledTimeMinutes - timeToMinutes(current.hora));
+                            return currDiff < prevDiff ? current : prev;
+                        });
+                        trainMapping[item.Tren] = bestRecord.id;
                     }
                 }
             }
