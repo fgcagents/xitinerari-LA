@@ -29,6 +29,7 @@ function fetchPage(offset, forceRefresh = false) {
         localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
         localStorage.setItem('trainCount', totalCount.toString());
         
+        console.log('Datos cargados desde la caché:', allResults.length, 'trenes');
         return Promise.resolve();
     }
 
@@ -43,6 +44,7 @@ function fetchPage(offset, forceRefresh = false) {
             
             if (data.results && Array.isArray(data.results)) {
                 allResults = allResults.concat(data.results);
+                console.log(`Página ${offset / limit + 1}:`, data.results.length, 'trenes obtenidos');
             }
             
             if (offset + limit < totalCount) {
@@ -56,10 +58,9 @@ function fetchPage(offset, forceRefresh = false) {
                 localStorage.setItem('lastFetch', Date.now().toString());
                 localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
                 localStorage.setItem('trainCount', totalCount.toString());
+                
+                console.log('Total trenes guardados en localStorage:', allResults.length);
             }
-
-            console.log('Total trenes guardados:', allResults.length);
-            console.log('Total trenes en localStorage:', JSON.parse(localStorage.getItem('trainData')).results.length);
         })
         .catch(error => console.error('Error al obtener los datos:', error));
 }
