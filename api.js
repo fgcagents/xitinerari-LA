@@ -58,9 +58,10 @@ function fetchPage(offset, forceRefresh = false) {
                 localStorage.setItem('lastFetch', Date.now().toString());
                 localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
                 localStorage.setItem('trainCount', totalCount.toString());
-                
+                                
                 console.log('Total trenes guardados en localStorage:', allResults.length);
             }
+
         })
         .catch(error => console.error('Error al obtener los datos:', error));
 }
