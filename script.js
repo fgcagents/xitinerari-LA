@@ -443,25 +443,18 @@ function updateTable() {
         const row = document.createElement('tr');
         const rowNumber = startIndex + index + 1;
         const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
+        const isInCirculation = trainMapping[entry.tren] ? 'in-circulation' : ''; // Verificar si el tren está en circulación
+
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
-            <td><a href="#" class="train-link" data-train="${entry.tren}">${entry.tren}</a></td>
+            <td><a href="#" class="train-link ${isInCirculation}" data-train="${entry.tren}">${entry.tren}</a></td>
             <td>${entry.estacio}</td>
             <td class="${horaClass}">${entry.hora}</td>
             <td>${entry.linia}</td>
             <td class="extra-col">${entry.torn}</td>
             <td class="extra-col"><a href="#" class="train-s-link" data-train="${entry.tren_s}">${entry.tren_s}</a></td>
         `;
-
-        // Si el tren está en circulación, se marca la fila en verde
-        if (trainMapping[entry.tren]) {
-            row.querySelector('.train-link').classList.add("in-circulation");
-        }
-        
-        /*if (trainMapping[entry.tren]) {
-            row.classList.add("in-circulation");
-        }*/
 
         // Listener para el enlace del tren principal
         const trainLink = row.querySelector('.train-link');
@@ -471,6 +464,7 @@ function updateTable() {
             elements.tren.value = entry.tren;
             filterData();
         });
+
         // Listener para el enlace del tren_s
         const trainSLink = row.querySelector('.train-s-link');
         trainSLink.addEventListener('click', (e) => {
