@@ -280,20 +280,8 @@ function filterData() {
         horaFi: elements.horaFi.value.trim()
     };
 
-    const hasActiveFilters = Object.values(filters).some(value => value);
-    if (!hasActiveFilters) {
-        elements.resultContainer.style.display = 'none';
-        filteredData = [];
-        return;
-    }
-
-    currentPage = 0;
-    const horaIniciMin = timeToMinutes(filters.horaInici);
-    const horaFiMin = timeToMinutes(filters.horaFi);
-    const trenesIncluidos = new Set(); // Conjunto para rastrear los trenes ya incluidos
-
+    // Si hay un tren específico seleccionado, mostrar su itinerario completo
     if (filters.tren) {
-        // Si hay un filtro de tren, mostrar el itinerario completo de ese tren
         filteredData = data.flatMap(item => {
             if (item.Tren.toLowerCase().includes(filters.tren.toLowerCase())) {
                 return Object.keys(item)
@@ -307,111 +295,178 @@ function filterData() {
                         estacio: station,
                         hora: item[station]
                     }));
-            } else {
-                return [];
             }
+            return [];
         });
-    } else if (filters.torn) {
-        filteredData = data
-            .filter(item => item.Torn && item.Torn.toLowerCase().includes(filters.torn.toLowerCase()))
-            .map(item => {
+    } 
+    // Si hay un filtro de línea, mostrar solo un registro por tren
+    else if (filters.linia && !filters.estacio) {
+        const trenesVistos = new Set();
+        filteredData = data.flatMap(item => {
+            if (item.Linia.toLowerCase().includes(filters.linia.toLowerCase()) &&
+                (!filters.ad || item['A/D'] === filters.ad) &&
+                !trenesVistos.has(item.Tren)) {
+                
+                trenesVistos.add(item.Tren);
+                // Encontrar la primera estación del tren en orden cronológico
                 const stations = Object.keys(item)
                     .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
                     .sort((a, b) => {
-                        const tA = timeToMinutes(item[a]);
-                        const tB = timeToMinutes(item[b]);
-                        return tA - tB;
+                        const timeA = timeToMinutes(item[a]);
+                        const timeB = timeToMinutes(item[b]);
+                        return timeA - timeB;
                     });
+
                 if (stations.length > 0) {
-                    const selectedStation = stations[0];
-                    return {
+                    const firstStation = stations[0];
+                    return [{
                         tren: item.Tren,
                         linia: item.Linia,
                         ad: item['A/D'],
                         torn: item.Torn,
                         tren_s: item.Tren_S,
-                        estacio: selectedStation,
-                        hora: item[selectedStation]
-                    };
+                        estacio: firstStation,
+                        hora: item[firstStation]
+                    }];
                 }
-            })
-            .filter(entry => {
-                if (!entry) return false;
-                const entryTimeMin = timeToMinutes(entry.hora);
-                let matchesTimeRange = true;
-                if (horaIniciMin !== null) {
-                    if (horaFiMin === null) {
-                        if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
-                            matchesTimeRange = true;
+            }
+            return [];
+        });
+    } 
+    // Para otros casos, mantener la lógica existente
+    else {
+        const hasActiveFilters = Object.values(filters).some(value => value);
+        if (!hasActiveFilters) {
+            elements.resultContainer.style.display = 'none';
+            filteredData = [];
+            return;
+        }
+    
+        currentPage = 0;
+        const horaIniciMin = timeToMinutes(filters.horaInici);
+        const horaFiMin = timeToMinutes(filters.horaFi);
+    
+        if (filters.torn) {
+            filteredData = data
+                .filter(item => item.Torn && item.Torn.toLowerCase().includes(filters.torn.toLowerCase()))
+                .map(item => {
+                    const stations = Object.keys(item)
+                        .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
+                        .sort((a, b) => {
+                            const tA = timeToMinutes(item[a]);
+                            const tB = timeToMinutes(item[b]);
+                            return tA - tB;
+                        });
+                    if (stations.length > 0) {
+                        const selectedStation = stations[0];
+                        return {
+                            tren: item.Tren,
+                            linia: item.Linia,
+                            ad: item['A/D'],
+                            torn: item.Torn,
+                            tren_s: item.Tren_S,
+                            estacio: selectedStation,
+                            hora: item[selectedStation]
+                        };
+                    }
+                })
+                .filter(entry => {
+                    if (!entry) return false;
+                    const entryTimeMin = timeToMinutes(entry.hora);
+                    let matchesTimeRange = true;
+                    if (horaIniciMin !== null) {
+                        if (horaFiMin === null) {
+                            if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
+                                matchesTimeRange = true;
+                            } else {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin;
+                            }
                         } else {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin;
-                        }
-                    } else {
-                        if (horaIniciMin > horaFiMin) {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
-                        } else {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
+                            if (horaIniciMin > horaFiMin) {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
+                            } else {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
+                            }
                         }
                     }
-                }
-                
-                const matchesFilters = (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
-                    (!filters.ad || entry.ad === filters.ad) &&
-                    (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
-                    matchesTimeRange;
-                
-                return matchesFilters;
-            });
-    } else {
-        filteredData = data.flatMap(item =>
-            Object.keys(item)
-                .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
-                .map(station => ({
-                    tren: item.Tren,
-                    linia: item.Linia,
-                    ad: item['A/D'],
-                    torn: item.Torn,
-                    tren_s: item.Tren_S,
-                    estacio: station,
-                    hora: item[station]
-                }))
-            .filter(entry => {
-                const entryTimeMin = timeToMinutes(entry.hora);
-                let matchesTimeRange = true;
-
-                if (horaIniciMin !== null) {
-                    if (horaFiMin === null) {
-                        if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
-                            matchesTimeRange = true;
+                    return (
+                        (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
+                        (!filters.linia || entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) &&
+                        (!filters.ad || entry.ad === filters.ad) &&
+                        (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
+                        matchesTimeRange
+                    );
+                });
+        } else {
+            filteredData = data.flatMap(item =>
+                Object.keys(item)
+                    .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
+                    .map(station => ({
+                        tren: item.Tren,
+                        linia: item.Linia,
+                        ad: item['A/D'],
+                        torn: item.Torn,
+                        tren_s: item.Tren_S,
+                        estacio: station,
+                        hora: item[station]
+                    }))
+                .filter(entry => {
+                    const entryTimeMin = timeToMinutes(entry.hora);
+                    let matchesTimeRange = true;
+    
+                    if (horaIniciMin !== null) {
+                        if (horaFiMin === null) {
+                            if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
+                                matchesTimeRange = true;
+                            } else {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin;
+                            }
                         } else {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin;
-                        }
-                    } else {
-                        if (horaIniciMin > horaFiMin) {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
-                        } else {
-                            matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
+                            if (horaIniciMin > horaFiMin) {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
+                            } else {
+                                matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
+                            }
                         }
                     }
-                }
-                
-                const matchesFilters = (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
-                    (!filters.ad || entry.ad === filters.ad) &&
-                    (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
-                    (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
-                    matchesTimeRange;
-
-                return matchesFilters;
-            })  
-        );
-        if (!filters.tren) {
-            filteredData = filteredData.filter((entry, index, self) =>
-                index === self.findIndex((t) => (
-                    t.tren === entry.tren
-                ))
+                    
+                    return (
+                        (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
+                        (!filters.linia || entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) &&
+                        (!filters.ad || entry.ad === filters.ad) &&
+                        (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
+                        (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
+                        matchesTimeRange
+                    );
+                })  
             );
         }
     }
+
+    // Aplicar filtros de tiempo y ordenación
+    if (horaIniciMin !== null || horaFiMin !== null) {
+        filteredData = filteredData.filter(entry => {
+            const entryTimeMin = timeToMinutes(entry.hora);
+            if (!entryTimeMin) return false;
+
+            if (horaIniciMin !== null && horaFiMin !== null) {
+                if (horaIniciMin > horaFiMin) {
+                    return entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
+                }
+                return entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
+            }
+
+            if (horaIniciMin !== null) {
+                if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
+                    return true;
+                }
+                return entryTimeMin >= horaIniciMin;
+            }
+
+            return true;
+        });
+    }
+
     filteredData = sortResultsByTime(filteredData);
     updateTable();
 }
