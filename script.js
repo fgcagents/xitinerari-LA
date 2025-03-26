@@ -292,7 +292,26 @@ function filterData() {
     const horaFiMin = timeToMinutes(filters.horaFi);
     const trenesIncluidos = new Set(); // Conjunto para rastrear los trenes ya incluidos
 
-    if (filters.torn) {
+    if (filters.tren) {
+        // Si hay un filtro de tren, mostrar el itinerario completo de ese tren
+        filteredData = data.flatMap(item => {
+            if (item.Tren.toLowerCase().includes(filters.tren.toLowerCase())) {
+                return Object.keys(item)
+                    .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
+                    .map(station => ({
+                        tren: item.Tren,
+                        linia: item.Linia,
+                        ad: item['A/D'],
+                        torn: item.Torn,
+                        tren_s: item.Tren_S,
+                        estacio: station,
+                        hora: item[station]
+                    }));
+            } else {
+                return [];
+            }
+        });
+    } else if (filters.torn) {
         filteredData = data
             .filter(item => item.Torn && item.Torn.toLowerCase().includes(filters.torn.toLowerCase()))
             .map(item => {
@@ -335,24 +354,13 @@ function filterData() {
                         }
                     }
                 }
-                // Verificar si el tren ya ha sido incluido
-                if (filters.linia && !entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) {
-                    return false;
-                }
-                if (trenesIncluidos.has(entry.tren)) {
-                    return false; // Saltar este tren si ya está incluido
-                }
                 
                 const matchesFilters = (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
                     (!filters.ad || entry.ad === filters.ad) &&
                     (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
                     matchesTimeRange;
                 
-                if (matchesFilters) {
-                    trenesIncluidos.add(entry.tren); // Agregar el tren al conjunto de trenes incluidos
-                    return true;
-                }
-                return false;
+                return matchesFilters;
             });
     } else {
         filteredData = data.flatMap(item =>
@@ -387,27 +395,22 @@ function filterData() {
                     }
                 }
                 
-                // Verificar si el tren ya ha sido incluido
-                if (filters.linia && !entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) {
-                    return false;
-                }
-                if (trenesIncluidos.has(entry.tren)) {
-                    return false; // Saltar este tren si ya está incluido
-                }
-
                 const matchesFilters = (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
                     (!filters.ad || entry.ad === filters.ad) &&
                     (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
                     (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
                     matchesTimeRange;
 
-                if (matchesFilters) {
-                    trenesIncluidos.add(entry.tren); // Agregar el tren al conjunto de trenes incluidos
-                    return true;
-                }
-                return false;
+                return matchesFilters;
             })  
         );
+        if (!filters.tren) {
+            filteredData = filteredData.filter((entry, index, self) =>
+                index === self.findIndex((t) => (
+                    t.tren === entry.tren
+                ))
+            );
+        }
     }
     filteredData = sortResultsByTime(filteredData);
     updateTable();
