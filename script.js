@@ -95,16 +95,18 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     }
 }
 
-// Modificar la función loadApiCache para validar la estructura
+// Modificar la función loadApiCache para siempre obtener datos frescos de localStorage
 function loadApiCache() {
     const cacheStr = localStorage.getItem('trainData');
     if (cacheStr) {
         try {
             const cacheObj = JSON.parse(cacheStr);
-            // Asegurar que la estructura es correcta
+            console.log("Cache actualizada desde localStorage:", new Date().toLocaleTimeString());
+            // Asegurar que la estructura es correcta y devolver siempre datos frescos
             return Array.isArray(cacheObj?.results) ? cacheObj.results : [];
         } catch (err) {
             console.error("Error parsing API cache:", err);
+            return [];
         }
     }
     return [];
@@ -563,10 +565,14 @@ async function init() {
     
     // Actualizar el mapeo y la tabla cada 60 segundos para sincronizar con la API
     setInterval(() => {
-        cachedApiData = loadApiCache();
-        buildTrainMapping();
-        updateTable();
-    }, 60000);
+        const newApiData = loadApiCache();
+        if (newApiData.length > 0) {
+            cachedApiData = newApiData;
+            buildTrainMapping();
+            updateTable();
+            console.log("Datos actualizados desde localStorage:", cachedApiData.length, "registros");
+        }
+    }, 10000); // Reducir a 10 segundos para una actualización más frecuente
 }
 
 document.addEventListener('DOMContentLoaded', init);
