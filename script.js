@@ -121,63 +121,94 @@ function buildTrainMapping() {
         data.forEach(item => {
             if (!item.Linia) return;
             
-            // Verificar si los dos primeros caracteres de la línea coinciden
+            // Verificar línea válida
             const linePrefix = item.Linia.substring(0, 2);
             const matchedLine = validLinePrefixes.find(prefix => 
                 linePrefix === prefix.substring(0, 2)
             );
             if (!matchedLine) return;
 
-            // Resto de la lógica para horarios
+            // Ordenar las estaciones por hora para encontrar la ubicación actual del tren
             const scheduleEntries = Object.entries(item)
                 .filter(([key, value]) => 
                     !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && value
-                );
+                )
+                .sort((a, b) => timeToMinutes(a[1]) - timeToMinutes(b[1]));
 
-            for (const [station, time] of scheduleEntries) {
-                const scheduledTimeMinutes = timeToMinutes(time);
-                if (scheduledTimeMinutes === null) continue;
+            // Encontrar la última estación por la que debería haber pasado el tren
+            let currentStationIndex = -1;
+            for (let i = 0; i < scheduleEntries.length; i++) {
+                const scheduledTime = timeToMinutes(scheduleEntries[i][1]);
+                if (scheduledTime > currentTimeMinutes) {
+                    currentStationIndex = i - 1;
+                    break;
+                }
+            }
+            if (currentStationIndex === -1) return; // Tren no en servicio
 
-                if ((scheduledTimeMinutes - currentTimeMinutes) >= -1 && 
-                    (scheduledTimeMinutes - currentTimeMinutes) <= 5) {
+            // Comprobar si el tren debería estar en circulación
+            const lastStation = scheduleEntries[currentStationIndex];
+            const nextStation = scheduleEntries[currentStationIndex + 1];
+            if (!lastStation || !nextStation) return;
+
+            const lastStationTime = timeToMinutes(lastStation[1]);
+            const nextStationTime = timeToMinutes(nextStation[1]);
+            
+            // El tren debe estar entre estas dos estaciones
+            if (currentTimeMinutes >= lastStationTime && currentTimeMinutes <= nextStationTime) {
+                const apiTrain = cachedApiData.find(apiRecord => {
+                    if (!apiRecord?.lin) return false;
                     
-                    const apiTrain = cachedApiData.find(apiRecord => {
-                        if (!apiRecord?.lin) return false;
-                        // Comparar solo los dos primeros caracteres de la línea
-                        const apiLinePrefix = apiRecord.lin.substring(0, 2).toLowerCase();
-                        const itemLinePrefix = linePrefix.toLowerCase();
-                        
-                        return apiLinePrefix === itemLinePrefix &&
-                               apiRecord.dir.toLowerCase() === item["A/D"].toLowerCase() &&
-                               !Object.values(trainMapping).includes(apiRecord.id);
-                    });
+                    // Verificar que el tren de la API coincide en línea y dirección
+                    const apiLinePrefix = apiRecord.lin.substring(0, 2).toLowerCase();
+                    return apiLinePrefix === linePrefix.toLowerCase() &&
+                           apiRecord.dir.toLowerCase() === item["A/D"].toLowerCase() &&
+                           !Object.values(trainMapping).includes(apiRecord.id);
+                });
 
-                    if (apiTrain && !trainMapping[item.Tren]) {
-                        trainMapping[item.Tren] = apiTrain.id;
-                        break;
-                    }
+                if (apiTrain && !trainMapping[item.Tren]) {
+                    trainMapping[item.Tren] = apiTrain.id;
                 }
             }
         });
     } else {
-        // Para actualizaciones posteriores
-        const currentMappedIds = Object.values(trainMapping);
-        
+        // Para actualizaciones posteriores, solo actualizar IDs existentes o añadir nuevas
         cachedApiData.forEach(apiRecord => {
-            if (!apiRecord?.id || currentMappedIds.includes(apiRecord.id)) return;
+            if (!apiRecord?.id || Object.values(trainMapping).includes(apiRecord.id)) return;
 
-            data.forEach(item => {
-                if (trainMapping[item.Tren]) return;
+            // Buscar un tren que debería estar en circulación y coincida con la línea y dirección
+            const potentialTrains = data.filter(item => {
+                if (trainMapping[item.Tren]) return false;
 
-                // Comparar solo los dos primeros caracteres de la línea
+                const linePrefix = item.Linia.substring(0, 2).toLowerCase();
                 const apiLinePrefix = apiRecord.lin.substring(0, 2).toLowerCase();
-                const itemLinePrefix = item.Linia.substring(0, 2).toLowerCase();
                 
-                if (apiLinePrefix === itemLinePrefix &&
-                    apiRecord.dir.toLowerCase() === item["A/D"].toLowerCase()) {
-                    trainMapping[item.Tren] = apiRecord.id;
+                if (linePrefix !== apiLinePrefix || 
+                    item["A/D"].toLowerCase() !== apiRecord.dir.toLowerCase()) {
+                    return false;
                 }
+
+                // Verificar si el tren debería estar en circulación
+                const scheduleEntries = Object.entries(item)
+                    .filter(([key, value]) => 
+                        !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && value
+                    )
+                    .sort((a, b) => timeToMinutes(a[1]) - timeToMinutes(b[1]));
+
+                for (let i = 0; i < scheduleEntries.length - 1; i++) {
+                    const currentStationTime = timeToMinutes(scheduleEntries[i][1]);
+                    const nextStationTime = timeToMinutes(scheduleEntries[i + 1][1]);
+                    if (currentTimeMinutes >= currentStationTime && 
+                        currentTimeMinutes <= nextStationTime) {
+                        return true;
+                    }
+                }
+                return false;
             });
+
+            if (potentialTrains.length > 0) {
+                trainMapping[potentialTrains[0].Tren] = apiRecord.id;
+            }
         });
     }
 }
