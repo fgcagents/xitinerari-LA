@@ -343,104 +343,48 @@ function filterData() {
                 );
             });
     } else {
-        // Si hay un filtro de línea activo y no hay filtro de estación
-        if (filters.linia && !filters.estacio) {
-            const seenTrains = new Set(); // Para controlar trenes únicos
-            const trainFirstStops = new Map(); // Para guardar la primera parada de cada tren
+        filteredData = data.flatMap(item =>
+            Object.keys(item)
+                .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
+                .map(station => ({
+                    tren: item.Tren,
+                    linia: item.Linia,
+                    ad: item['A/D'],
+                    torn: item.Torn,
+                    tren_s: item.Tren_S,
+                    estacio: station,
+                    hora: item[station]
+                }))
+            .filter(entry => {
+                const entryTimeMin = timeToMinutes(entry.hora);
+                let matchesTimeRange = true;
 
-            // Primer paso: encontrar la primera parada de cada tren que cumpla los filtros de tiempo
-            data.filter(item => item.Linia.toLowerCase().includes(filters.linia.toLowerCase()))
-                .forEach(item => {
-                    const stations = Object.keys(item)
-                        .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
-                        .sort((a, b) => {
-                            const tA = timeToMinutes(item[a]);
-                            const tB = timeToMinutes(item[b]);
-                            return tA - tB;
-                        });
-
-                    for (const station of stations) {
-                        const timeMin = timeToMinutes(item[station]);
-                        let matchesTimeRange = true;
-
-                        if (horaIniciMin !== null) {
-                            if (horaFiMin === null) {
-                                matchesTimeRange = timeMin >= horaIniciMin || (timeMin < 240 && timeMin < horaIniciMin);
-                            } else {
-                                if (horaIniciMin > horaFiMin) {
-                                    matchesTimeRange = timeMin >= horaIniciMin || timeMin <= horaFiMin;
-                                } else {
-                                    matchesTimeRange = timeMin >= horaIniciMin && timeMin <= horaFiMin;
-                                }
-                            }
-                        }
-
-                        if (matchesTimeRange && !seenTrains.has(item.Tren)) {
-                            seenTrains.add(item.Tren);
-                            trainFirstStops.set(item.Tren, {
-                                tren: item.Tren,
-                                linia: item.Linia,
-                                ad: item['A/D'],
-                                torn: item.Torn,
-                                tren_s: item.Tren_S,
-                                estacio: station,
-                                hora: item[station]
-                            });
-                            break;
-                        }
-                    }
-                });
-
-            filteredData = Array.from(trainFirstStops.values())
-                .filter(entry => (
-                    (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
-                    (!filters.ad || entry.ad === filters.ad) &&
-                    (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase()))
-                ));
-        } else {
-            filteredData = data.flatMap(item =>
-                Object.keys(item)
-                    .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
-                    .map(station => ({
-                        tren: item.Tren,
-                        linia: item.Linia,
-                        ad: item['A/D'],
-                        torn: item.Torn,
-                        tren_s: item.Tren_S,
-                        estacio: station,
-                        hora: item[station]
-                    }))
-                .filter(entry => {
-                    const entryTimeMin = timeToMinutes(entry.hora);
-                    let matchesTimeRange = true;
-
-                    if (horaIniciMin !== null) {
-                        if (horaFiMin === null) {
-                            if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
-                                matchesTimeRange = true;
-                            } else {
-                                matchesTimeRange = entryTimeMin >= horaIniciMin;
-                            }
+                if (horaIniciMin !== null) {
+                    if (horaFiMin === null) {
+                        if (entryTimeMin < horaIniciMin && entryTimeMin < 240) {
+                            matchesTimeRange = true;
                         } else {
-                            if (horaIniciMin > horaFiMin) {
-                                matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
-                            } else {
-                                matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
-                            }
+                            matchesTimeRange = entryTimeMin >= horaIniciMin;
+                        }
+                    } else {
+                        if (horaIniciMin > horaFiMin) {
+                            matchesTimeRange = entryTimeMin >= horaIniciMin || entryTimeMin <= horaFiMin;
+                        } else {
+                            matchesTimeRange = entryTimeMin >= horaIniciMin && entryTimeMin <= horaFiMin;
                         }
                     }
-                    
-                    return (
-                        (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
-                        (!filters.linia || entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) &&
-                        (!filters.ad || entry.ad === filters.ad) &&
-                        (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
-                        (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
-                        matchesTimeRange
-                    );
-                })  
-            );
-        }
+                }
+                
+                return (
+                    (!filters.tren || entry.tren.toLowerCase().includes(filters.tren.toLowerCase())) &&
+                    (!filters.linia || entry.linia.toLowerCase().includes(filters.linia.toLowerCase())) &&
+                    (!filters.ad || entry.ad === filters.ad) &&
+                    (!filters.estacio || entry.estacio.toLowerCase().includes(filters.estacio.toLowerCase())) &&
+                    (!filters.torn || entry.torn.toLowerCase().includes(filters.torn.toLowerCase())) &&
+                    matchesTimeRange
+                );
+            })  
+        );
     }
     filteredData = sortResultsByTime(filteredData);
     updateTable();
