@@ -365,16 +365,17 @@ function filterData() {
             });
     } else {
         filteredData = data.flatMap(item => {
-            if (shouldShowSingleStation && 
-                (!filters.linia || item.Linia.toLowerCase().includes(filters.linia.toLowerCase()))) {
-                // Para filtro por línea, mostrar solo la primera parada
+            // Verificar si el item coincide con el filtro de línea
+            const matchesLine = !filters.linia || item.Linia.toLowerCase().includes(filters.linia.toLowerCase());
+            
+            if (shouldShowSingleStation && matchesLine) {
                 const stations = Object.keys(item)
                     .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
                     .sort((a, b) => timeToMinutes(item[a]) - timeToMinutes(item[b]));
                 
                 if (stations.length > 0) {
                     const firstStation = stations[0];
-                    return [{
+                    const entry = {
                         tren: item.Tren,
                         linia: item.Linia,
                         ad: item['A/D'],
@@ -382,7 +383,8 @@ function filterData() {
                         tren_s: item.Tren_S,
                         estacio: firstStation,
                         hora: item[firstStation]
-                    }];
+                    };
+                    return [entry];
                 }
                 return [];
             }
