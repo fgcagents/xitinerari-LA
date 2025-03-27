@@ -1,7 +1,7 @@
 const limit = 20;
 let totalCount = 0;
 let allResults = [];
-const CACHE_DURATION = 60000; // 60 segundos en milisegundos
+const CACHE_DURATION = 30000; // 30 segundos en milisegundos
 let apiAccessTime = null;
 
 function formatTime(date) {
@@ -21,14 +21,8 @@ function isCacheValid() {
 function fetchPage(offset, forceRefresh = false) {
     if (offset === 0 && isCacheValid() && !forceRefresh) {
         const cachedData = JSON.parse(localStorage.getItem('trainData'));
-        apiAccessTime = new Date(parseInt(localStorage.getItem('lastFetch')));
-        
         allResults = cachedData.results;
         totalCount = cachedData.total_count;
-        
-        localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
-        localStorage.setItem('trainCount', totalCount.toString());
-        
         console.log('Datos cargados desde la caché:', allResults.length, 'trenes');
         return Promise.resolve();
     }
@@ -50,15 +44,12 @@ function fetchPage(offset, forceRefresh = false) {
             if (offset + limit < totalCount) {
                 return fetchPage(offset + limit, forceRefresh);
             } else {
-                // Guardamos en localStorage SOLO cuando tengamos todos los resultados
+// Guardamos en localStorage SOLO cuando tengamos todos los resultados
                 localStorage.setItem('trainData', JSON.stringify({
                     results: allResults,
                     total_count: totalCount
                 }));
                 localStorage.setItem('lastFetch', Date.now().toString());
-                localStorage.setItem('timestamp', apiAccessTime.toLocaleString());
-                localStorage.setItem('trainCount', totalCount.toString());
-                                
                 console.log('Total trenes guardados en localStorage:', allResults.length);
             }
 
@@ -72,9 +63,9 @@ function refreshData() {
     fetchPage(0, true);
 }
 
-// Inicia la carga de datos y programa el refresco cada 60 segundos
+// Inicia la carga de datos y programa el refresco cada 30 segundos
 document.addEventListener("DOMContentLoaded", function(){
     fetchPage(0).then(() => {
-        setInterval(refreshData, 60000);
+        setInterval(refreshData, 30000);
     });
 });

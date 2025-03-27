@@ -112,87 +112,74 @@ function loadApiCache() {
 
 // Nueva función: Construir el mapeo de trenes en circulación
 function buildTrainMapping() {
-    trainMapping = {}; // Reiniciamos el mapeo
+    const validLinePrefixes = ['R5', 'R6', 'S4', 'S8', 'S3', 'L8', 'S9'];
     const now = new Date();
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    // Primera llamada - crear mapeo inicial
+    if (Object.keys(trainMapping).length === 0) {
+        data.forEach(item => {
+            if (!item.Linia) return;
+            
+            // Verificar si los dos primeros caracteres de la línea coinciden
+            const linePrefix = item.Linia.substring(0, 2);
+            const matchedLine = validLinePrefixes.find(prefix => 
+                linePrefix === prefix.substring(0, 2)
+            );
+            if (!matchedLine) return;
 
-    // Limpiar mapeos antiguos
-    Object.keys(trainMapping).forEach(train => {
-        const item = data.find(d => d.Tren === train);
-        if (!item) delete trainMapping[train];
-    });
+            // Resto de la lógica para horarios
+            const scheduleEntries = Object.entries(item)
+                .filter(([key, value]) => 
+                    !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && value
+                );
 
-    data.forEach(item => {
-        // Claves a excluir (no son estaciones)
-        const excludedKeys = ["Tren", "Linia", "A/D", "Serveis", "Torn", "Tren_S"];
-        Object.keys(item).forEach(key => {
-            if (!excludedKeys.includes(key) && item[key]) {
-                const scheduledTime = item[key];
-                const scheduledTimeMinutes = timeToMinutes(scheduledTime);
+            for (const [station, time] of scheduleEntries) {
+                const scheduledTimeMinutes = timeToMinutes(time);
+                if (scheduledTimeMinutes === null) continue;
 
-                // Buscar todos los registros de la API que cumplan las condiciones solicitadas
-                const candidateRecords = cachedApiData.filter(apiRecord => {
-                    if (!apiRecord) return false;
-
-                    // 1. Filtrar por Línea: comparar solo los 2 primeros caracteres
-                    if (item.Linia.substr(0, 2).toLowerCase() !== (apiRecord.lin || "").substr(0, 2).toLowerCase()) 
-                        return false;
-
-                    // 2. Filtrar por Dirección
-                    if (item["A/D"].toLowerCase() !== (apiRecord.dir || "").toLowerCase())
-                        return false;
-
-                    // 3. Filtrar por Estación: Comprobar que la clave coincide con la primera parada o con la segunda parada (si existe)
-                    if (apiRecord.properes_parades) {
-                        try {
-                            let parts = apiRecord.properes_parades.split(';').map(p => p.trim()).filter(p => p);
-                            let firstStation = "", secondStation = "";
-                            if (parts.length > 0) {
-                                let parsed = JSON.parse(parts[0]);
-                                firstStation = (parsed.parada || "").toLowerCase();
-                            }
-                            if (parts.length > 1) {
-                                let parsed = JSON.parse(parts[1]);
-                                secondStation = (parsed.parada || "").toLowerCase();
-                            }
-                            if (key.toLowerCase() === firstStation || (secondStation && key.toLowerCase() === secondStation)) {
-                                return true;
-                            }
-                            return false;
-                        } catch (error) {
-                            console.error("Error al procesar properes_parades:", error);
-                            return false;
-                        }
-                    }
-                    return false;
-                });
-
-                // 4. Filtrar por la hora: asociar solo si la diferencia es <= 8 minutos
-                if (
-                    candidateRecords.length > 0 &&
-                    scheduledTimeMinutes !== null &&
-                    (scheduledTimeMinutes - currentTimeMinutes) >= -1 &&
-                    (scheduledTimeMinutes - currentTimeMinutes) <= 5
-                ) {
-                     // Buscar todos los registros candidatos no asignados
-                     const availableRecords = candidateRecords.filter(record => 
-                     !Object.values(trainMapping).includes(record.id)
-                 );
+                if ((scheduledTimeMinutes - currentTimeMinutes) >= -1 && 
+                    (scheduledTimeMinutes - currentTimeMinutes) <= 5) {
                     
-                    // Buscar el primer registro candidato que tenga una id no asignada aún
-                    if (!trainMapping[item.Tren] && availableRecords.length > 0) {
-                        // Tomar el registro con menor diferencia de tiempo
-                        const bestRecord = availableRecords.reduce((prev, current) => {
-                            const prevDiff = Math.abs(scheduledTimeMinutes - timeToMinutes(prev.hora));
-                            const currDiff = Math.abs(scheduledTimeMinutes - timeToMinutes(current.hora));
-                            return currDiff < prevDiff ? current : prev;
-                        });
-                        trainMapping[item.Tren] = bestRecord.id;
+                    const apiTrain = cachedApiData.find(apiRecord => {
+                        if (!apiRecord?.lin) return false;
+                        // Comparar solo los dos primeros caracteres de la línea
+                        const apiLinePrefix = apiRecord.lin.substring(0, 2).toLowerCase();
+                        const itemLinePrefix = linePrefix.toLowerCase();
+                        
+                        return apiLinePrefix === itemLinePrefix &&
+                               apiRecord.dir.toLowerCase() === item["A/D"].toLowerCase() &&
+                               !Object.values(trainMapping).includes(apiRecord.id);
+                    });
+
+                    if (apiTrain && !trainMapping[item.Tren]) {
+                        trainMapping[item.Tren] = apiTrain.id;
+                        break;
                     }
                 }
             }
         });
-    });
+    } else {
+        // Para actualizaciones posteriores
+        const currentMappedIds = Object.values(trainMapping);
+        
+        cachedApiData.forEach(apiRecord => {
+            if (!apiRecord?.id || currentMappedIds.includes(apiRecord.id)) return;
+
+            data.forEach(item => {
+                if (trainMapping[item.Tren]) return;
+
+                // Comparar solo los dos primeros caracteres de la línea
+                const apiLinePrefix = apiRecord.lin.substring(0, 2).toLowerCase();
+                const itemLinePrefix = item.Linia.substring(0, 2).toLowerCase();
+                
+                if (apiLinePrefix === itemLinePrefix &&
+                    apiRecord.dir.toLowerCase() === item["A/D"].toLowerCase()) {
+                    trainMapping[item.Tren] = apiRecord.id;
+                }
+            });
+        });
+    }
 }
 
 // Función para registrar los event listeners del menú
