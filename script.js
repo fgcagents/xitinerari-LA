@@ -84,7 +84,7 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     try {
         elements.loading.classList.add('visible');
         const jsonData = await fetchJSON(filename);
-        window.sharedData.data = jsonData; // Guardar los datos en el objeto global
+window.sharedData.data = jsonData; // Guardar los datos en el objeto global
         elements.resultContainer.style.display = 'none';
         filteredData = [];
         return window.sharedData.data;
@@ -119,7 +119,7 @@ function buildTrainMapping() {
     
     // Limpiar mapeo existente si es la primera llamada
     if (Object.keys(trainMapping).length === 0) {
-        window.sharedData.data.forEach(itin => {
+window.sharedData.data.forEach(itin => {
             if (!itin.Linia) return;
             
             // Normalizar línea y dirección del itinerario
@@ -381,8 +381,8 @@ function filterData() {
             if (shouldShowSingleStation && matchesLine) {
                 const stations = Object.keys(item)
                     .filter(key => !['Tren', 'Linia', 'A/D', 'Serveis', 'Torn', 'Tren_S'].includes(key) && item[key])
-                    .sort((a, b) => timeToMinutes(item[a]) - timeToMinutes(item[b]));
-                
+                                    .sort((a, b) => timeToMinutes(item[a]) - timeToMinutes(item[b]));
+
                 if (stations.length > 0) {
                     const firstStation = stations[0];
                     const entry = {
