@@ -1,5 +1,7 @@
 // Variables globals
-let data = [];
+window.sharedData = {
+    data: [] // Exponer los datos del JSON
+};
 let cachedApiData = []; // Variable per guardar la cache de l'API
 let trainMapping = {}; // Nuevo mapeo: clave = nombre del tren del JSON, valor = id de la API
 let currentPage = 0;
@@ -82,10 +84,10 @@ async function loadData(filename = 'itinerari_LA51_2_0_1_asc_desc.json') {
     try {
         elements.loading.classList.add('visible');
         const jsonData = await fetchJSON(filename);
-        data = jsonData;
+        window.sharedData.data = jsonData; // Guardar los datos en el objeto global
         elements.resultContainer.style.display = 'none';
         filteredData = [];
-        return data;
+        return window.sharedData.data;
     } catch (error) {
         console.error('Error al cargar dades:', error);
         showError('Error al cargar les dades');
@@ -117,7 +119,7 @@ function buildTrainMapping() {
     
     // Limpiar mapeo existente si es la primera llamada
     if (Object.keys(trainMapping).length === 0) {
-        data.forEach(itin => {
+        window.sharedData.data.forEach(itin => {
             if (!itin.Linia) return;
             
             // Normalizar línea y dirección del itinerario
@@ -167,7 +169,7 @@ function buildTrainMapping() {
             const linRecordShort = String(record.lin || "").trim().substring(0,2).toUpperCase();
             const dirRecord = String(record.dir || "").trim().toUpperCase();
 
-            const matchingTrain = data.find(itin => {
+            const matchingTrain = window.sharedData.data.find(itin => {
                 if (trainMapping[itin.Tren]) return false;
 
                 const linItinShort = String(itin.Linia || "").trim().substring(0,2).toUpperCase();
@@ -321,7 +323,7 @@ function filterData() {
     const shouldShowSingleStation = filters.linia && !filters.estacio;
 
     if (filters.torn) {
-        filteredData = data
+        filteredData = window.sharedData.data
             .filter(item => item.Torn && item.Torn.toLowerCase().includes(filters.torn.toLowerCase()))
             .map(item => {
                 const stations = Object.keys(item)
@@ -372,7 +374,7 @@ function filterData() {
                 );
             });
     } else {
-        filteredData = data.flatMap(item => {
+        filteredData = window.sharedData.data.flatMap(item => {
             // Verificar si el item coincide con el filtro de línea
             const matchesLine = !filters.linia || item.Linia.toLowerCase().includes(filters.linia.toLowerCase());
             
