@@ -26,12 +26,10 @@ function fetchPage(offset) {
     return Promise.resolve();
   }
   const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
-  console.log(`Consultando página ${offset/limit + 1} de la API:`, apiUrl);
   
   return fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
-      console.log(`Datos página ${offset/limit + 1}:`, data);
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         apiAccessTime = new Date();
@@ -40,12 +38,10 @@ function fetchPage(offset) {
       }
       if (data.results && Array.isArray(data.results)) {
         allResults = allResults.concat(data.results);
-        console.log(`Registros acumulados hasta ahora: ${allResults.length} de ${totalCount}`);
       }
       
       // Verificar si necesitamos más páginas
       if (offset + limit < totalCount) {
-        console.log(`Obteniendo siguiente página... (offset: ${offset + limit})`);
         return fetchPage(offset + limit);
       } else {
         // Hemos terminado de obtener todas las páginas
@@ -186,7 +182,6 @@ function processMatching() {
     console.warn("No se encontraron coincidencias");
   } else {
     console.log("Resultados de matching:", resultados);
-    console.table(resultados); // Muestra los resultados en formato tabla
   }
 
   console.groupEnd();
