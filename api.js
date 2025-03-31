@@ -170,6 +170,10 @@ function refreshData() {
   cachedData = null;
   lastCacheTime = null;
   allResults = [];
+  if (GLOBAL_JSON_DATA) {
+    itinerarios = GLOBAL_JSON_DATA;
+    console.log('Itinerarios actualizados desde GLOBAL_JSON_DATA:', itinerarios);
+  }
   fetchPage(0).then(() => {
     processMatching();
   });
@@ -204,9 +208,22 @@ function mostrarCache() {
 }
 
 // Inicia la carga de datos al cargar la página y refresca cada 30 segundos
-document.addEventListener("DOMContentLoaded", function(){
-  if (GLOBAL_JSON_DATA) {
-      itinerarios = GLOBAL_JSON_DATA; // Asignar el JSON global a itinerarios
+document.addEventListener("DOMContentLoaded", function(){DATA) {
+  if (GLOBAL_JSON_DATA) {  itinerarios = GLOBAL_JSON_DATA;
+      itinerarios = GLOBAL_JSON_DATA;o en GLOBAL_JSON_DATA:', itinerarios);
+      console.log('Itinerarios cargados desde GLOBAL_JSON_DATA:', itinerarios);         processMatching();
+      processMatching();
+  } else {
+      console.warn('GLOBAL_JSON_DATA no está disponible.');
+  }
+  allResults = [];icia la carga de datos al cargar la página y refresca cada 30 segundos
+  fetchPage(0).then(() => {ument.addEventListener("DOMContentLoaded", function(){
+    processMatching();  if (GLOBAL_JSON_DATA) {
+
+
+
+
+});  });    setInterval(refreshData, 30000);      itinerarios = GLOBAL_JSON_DATA; // Asignar el JSON global a itinerarios
       console.log('Itinerarios cargados desde GLOBAL_JSON_DATA:', itinerarios);
       processMatching();
   } else {
