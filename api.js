@@ -104,7 +104,9 @@ function processMatching() {
             const horaProgramada = convertirHora(horaProgramadaStr);
             if (Math.abs(ahora - horaProgramada) <= toleranciaMs) {
               resultados.push({
-                "ID Tren": `${record.id} (${itin.Tren})`,
+                "ID Tren": `${record.id} (${itin.Tren})`, // Mantener para compatibilidad
+                "API_ID": record.id,           // Nuevo campo
+                "Tren_Numero": itin.Tren,      // Nuevo campo
                 "Línea": record.lin,
                 "Dirección": record.dir,
                 "Estación": record.estacionat_a,
@@ -129,7 +131,9 @@ function processMatching() {
               const horaProgramada = convertirHora(horaProgramadaStr);
               if (Math.abs(ahora - horaProgramada) <= toleranciaMs) {
                 resultados.push({
-                  "ID Tren": `${record.id} (${itin.Tren})`,
+                  "ID Tren": `${record.id} (${itin.Tren})`, // Mantener para compatibilidad
+                  "API_ID": record.id,           // Nuevo campo
+                  "Tren_Numero": itin.Tren,      // Nuevo campo
                   "Línea": record.lin,
                   "Dirección": record.dir,
                   "Estación": parada,
@@ -156,11 +160,13 @@ function processMatching() {
     console.log("Resultados de matching:", resultados);
   }
   
-  // Guardar en localStorage la lista de trenes con nombre e ID
-  const trenes = resultados.map(res => {
-    const [id, nombre] = res["ID Tren"].split(" (");
-    return { nombre: nombre.replace(")", "").trim(), id: id.trim() };
-  });
+  // Modificar el guardado en localStorage para incluir ambos IDs
+  const trenes = resultados.map(res => ({
+    nombre: res.Tren_Numero,
+    id: res.API_ID,
+    id_completo: res["ID Tren"]  // Mantener el formato original también
+  }));
+  
   localStorage.setItem("trenes", JSON.stringify(trenes));
   console.log("Lista de trenes guardada en localStorage:", trenes);
 }
