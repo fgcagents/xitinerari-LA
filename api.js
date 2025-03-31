@@ -31,7 +31,7 @@ function fetchPage(offset) {
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         apiAccessTime = new Date();
-        document.getElementById('timestamp').textContent = "Timestamp de acceso: " + apiAccessTime.toLocaleString();
+        /*document.getElementById('timestamp').textContent = "Timestamp de acceso: " + apiAccessTime.toLocaleString();*/
       }
       if (data.results && Array.isArray(data.results)) {
         allResults = allResults.concat(data.results);
