@@ -333,10 +333,15 @@ a.train-link:hover {
     color: var(--secondary-color);
 }
 
+/* Eliminar los estilos anteriores de .active-train para filas */
 .active-train {
-    background-color: rgba(0, 255, 0, 0.1) !important;
+    color: #28a745 !important;
+    font-weight: bold;
+    text-decoration: none !important;
+    border-bottom: 2px solid #28a745 !important;
 }
 
 .active-train:hover {
-    background-color: rgba(0, 255, 0, 0.2) !important;
+    color: #218838 !important;
+    border-bottom: 2px solid #218838 !important;
 }

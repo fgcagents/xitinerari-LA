@@ -377,14 +377,10 @@ function updateTable() {
         const row = document.createElement('tr');
         const rowNumber = startIndex + index + 1;
         const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
-        // Añadir clase 'active-train' si el tren está activo
-        if (trenesActivos.has(entry.tren)) {
-            row.classList.add('active-train');
-        }
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
-            <td><a href="#" class="train-link" data-train="${entry.tren}">${entry.tren}</a></td>
+            <td><a href="#" class="train-link ${trenesActivos.has(entry.tren) ? 'active-train' : ''}" data-train="${entry.tren}">${entry.tren}</a></td>
             <td>${entry.estacio}</td>
             <td class="${horaClass}">${entry.hora}</td>
             <td>${entry.linia}</td>
