@@ -179,6 +179,19 @@ function refreshData() {
   });
 }
 
+// Observer para detectar cambios en GLOBAL_JSON_DATA
+let lastJsonValue = null;
+setInterval(() => {
+    if (GLOBAL_JSON_DATA !== lastJsonValue) {
+        lastJsonValue = GLOBAL_JSON_DATA;
+        if (GLOBAL_JSON_DATA) {
+            itinerarios = GLOBAL_JSON_DATA;
+            console.log('Itinerarios actualizados por cambio en GLOBAL_JSON_DATA:', itinerarios);
+            processMatching();
+        }
+    }
+}, 1000);
+
 // Manejar la carga del fichero de itinerarios
 /*document.getElementById('itinerarioFile').addEventListener('change', function(event) {
   const file = event.target.files[0];
@@ -208,30 +221,16 @@ function mostrarCache() {
 }
 
 // Inicia la carga de datos al cargar la página y refresca cada 30 segundos
-document.addEventListener("DOMContentLoaded", function(){DATA) {
-  if (GLOBAL_JSON_DATA) {  itinerarios = GLOBAL_JSON_DATA;
-      itinerarios = GLOBAL_JSON_DATA;o en GLOBAL_JSON_DATA:', itinerarios);
-      console.log('Itinerarios cargados desde GLOBAL_JSON_DATA:', itinerarios);         processMatching();
-      processMatching();
-  } else {
-      console.warn('GLOBAL_JSON_DATA no está disponible.');
-  }
-  allResults = [];icia la carga de datos al cargar la página y refresca cada 30 segundos
-  fetchPage(0).then(() => {ument.addEventListener("DOMContentLoaded", function(){
-    processMatching();  if (GLOBAL_JSON_DATA) {
-
-
-
-
-});  });    setInterval(refreshData, 30000);      itinerarios = GLOBAL_JSON_DATA; // Asignar el JSON global a itinerarios
-      console.log('Itinerarios cargados desde GLOBAL_JSON_DATA:', itinerarios);
-      processMatching();
-  } else {
-      console.warn('GLOBAL_JSON_DATA no está disponible.');
-  }
-  allResults = [];
-  fetchPage(0).then(() => {
-    processMatching();
-    setInterval(refreshData, 30000);
-  });
+document.addEventListener("DOMContentLoaded", function(){
+    if (GLOBAL_JSON_DATA) {
+        itinerarios = GLOBAL_JSON_DATA;
+        console.log('Itinerarios cargados desde GLOBAL_JSON_DATA:', itinerarios);
+    } else {
+        console.warn('GLOBAL_JSON_DATA no está disponible.');
+    }
+    allResults = [];
+    fetchPage(0).then(() => {
+        processMatching();
+        setInterval(refreshData, 30000);
+    });
 });
