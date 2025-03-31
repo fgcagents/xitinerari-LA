@@ -51,11 +51,11 @@ function fetchPage(offset) {
           páginas: Math.ceil(totalCount/limit)
         });
         
-        if (offset === 0) {
+        // Asignamos en caché al finalizar todas las páginas
           cachedData = allResults;
           lastCacheTime = now;
           console.log("Datos guardados en caché:", cachedData);
-        }
+        
       }
     })
     .catch(error => {
