@@ -21,38 +21,51 @@ function fetchPage(offset) {
   const now = new Date().getTime();
   if (cachedData && lastCacheTime && (now - lastCacheTime < cacheDurationMs)) {
     allResults = cachedData;
-console.log("Usando datos en caché:", allResults);
+    console.log("Usando datos en caché:", allResults);
     processMatching();
     return Promise.resolve();
   }
   const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
-console.log("Consultando API:", apiUrl);
+  console.log(`Consultando página ${offset/limit + 1} de la API:`, apiUrl);
   
   return fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
-console.log("Respuesta de la API:", data);
+      console.log(`Datos página ${offset/limit + 1}:`, data);
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         apiAccessTime = new Date();
-        console.log(`Total de registros: ${totalCount}, Timestamp: ${apiAccessTime}`);
+        console.log(`Total de registros esperados: ${totalCount}`);
+        console.log(`Número de páginas necesarias: ${Math.ceil(totalCount/limit)}`);
       }
       if (data.results && Array.isArray(data.results)) {
         allResults = allResults.concat(data.results);
-console.log(`Registros acumulados: ${allResults.length}`);
+        console.log(`Registros acumulados hasta ahora: ${allResults.length} de ${totalCount}`);
       }
+      
+      // Verificar si necesitamos más páginas
       if (offset + limit < totalCount) {
+        console.log(`Obteniendo siguiente página... (offset: ${offset + limit})`);
         return fetchPage(offset + limit);
-      } else if (offset === 0) {
-        // Guardar en caché solo cuando se completa la carga inicial
-        cachedData = allResults;
-        lastCacheTime = now;
-        console.log("Datos guardados en caché:", cachedData);
+      } else {
+        // Hemos terminado de obtener todas las páginas
+        console.log("Recuperación completa:", {
+          totalEsperado: totalCount,
+          totalObtenido: allResults.length,
+          páginas: Math.ceil(totalCount/limit)
+        });
+        
+        if (offset === 0) {
+          cachedData = allResults;
+          lastCacheTime = now;
+          console.log("Datos guardados en caché:", cachedData);
+        }
       }
     })
     .catch(error => {
-console.error('Error al obtener les dades:', error);
+      console.error('Error al obtener les dades:', error);
       console.error('URL que falló:', apiUrl);
+      console.error('Offset donde falló:', offset);
     });
 }
 
@@ -83,7 +96,7 @@ function parsearParadas(paradasStr) {
 
 // Realiza el matching y guarda los resultados en localStorage
 function processMatching() {
-console.group('Process Matching');
+  console.group('Process Matching');
   console.log('Iniciando matching con:', {
     'Total trenes API': allResults.length,
     'Total itinerarios': itinerarios.length
@@ -95,7 +108,7 @@ console.group('Process Matching');
   
   if (itinerarios.length === 0) {
     console.warn("Carregar el fitxer JSON d'itineraris");
-console.groupEnd();
+    console.groupEnd();
     return;
   }
   
@@ -173,7 +186,7 @@ console.groupEnd();
     console.warn("No se encontraron coincidencias");
   } else {
     console.log("Resultados de matching:", resultados);
-console.table(resultados); // Muestra los resultados en formato tabla
+    console.table(resultados); // Muestra los resultados en formato tabla
   }
 
   console.groupEnd();
