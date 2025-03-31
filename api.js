@@ -176,7 +176,7 @@ function refreshData() {
 }
 
 // Manejar la carga del fichero de itinerarios
-document.getElementById('itinerarioFile').addEventListener('change', function(event) {
+/*document.getElementById('itinerarioFile').addEventListener('change', function(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -192,7 +192,7 @@ document.getElementById('itinerarioFile').addEventListener('change', function(ev
     }
   };
   reader.readAsText(file);
-});
+});*/
 
 // Función para mostrar los datos de la caché en la consola
 function mostrarCache() {
