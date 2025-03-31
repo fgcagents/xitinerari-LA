@@ -164,6 +164,14 @@ function shouldHighlightTime(entry) {
     return isLineaValid && !(isSpecificTrain && entry.ad === "D");
 }
 
+// Función para obtener los trenes activos del matching
+function getTrenesActivos() {
+    const trenesStr = localStorage.getItem("trenes");
+    if (!trenesStr) return new Set();
+    const trenes = JSON.parse(trenesStr);
+    return new Set(trenes.map(t => t.nombre));
+}
+
 // Función de filtrado principal
 function filterData() {
     const filters = {
@@ -359,6 +367,7 @@ function updateTable() {
         return;
     }
 
+    const trenesActivos = getTrenesActivos();
     const fragment = document.createDocumentFragment();
     const startIndex = currentPage * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -368,6 +377,10 @@ function updateTable() {
         const row = document.createElement('tr');
         const rowNumber = startIndex + index + 1;
         const horaClass = shouldHighlightTime(entry) ? 'highlighted-time' : '';
+        // Añadir clase 'active-train' si el tren está activo
+        if (trenesActivos.has(entry.tren)) {
+            row.classList.add('active-train');
+        }
         row.innerHTML = `
             <td class="row-number">${rowNumber}</td>
             <td>${entry.ad}</td>
@@ -419,6 +432,16 @@ function updateTable() {
         loadMoreButton.remove();
     }
 }
+
+// Añadir un observer para actualizar la tabla cuando cambie el localStorage
+window.addEventListener('storage', function(e) {
+    if (e.key === 'trenes') {
+        updateTable();
+    }
+});
+
+// Actualizar la tabla cada 30 segundos para mantener sincronizado el estado de los trenes
+setInterval(updateTable, 30000);
 
 // Función para inicializar los listeners de inputs
 function initInputListeners() {
