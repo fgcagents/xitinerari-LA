@@ -21,20 +21,25 @@ function fetchPage(offset) {
   const now = new Date().getTime();
   if (cachedData && lastCacheTime && (now - lastCacheTime < cacheDurationMs)) {
     allResults = cachedData;
+    console.log("Usando datos en caché:", allResults);
     processMatching();
     return Promise.resolve();
   }
   const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
+  console.log("Consultando API:", apiUrl);
+  
   return fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
+      console.log("Respuesta de la API:", data);
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         apiAccessTime = new Date();
-        /*document.getElementById('timestamp').textContent = "Timestamp de acceso: " + apiAccessTime.toLocaleString();*/
+        console.log(`Total de registros: ${totalCount}, Timestamp: ${apiAccessTime}`);
       }
       if (data.results && Array.isArray(data.results)) {
         allResults = allResults.concat(data.results);
+        console.log(`Registros acumulados: ${allResults.length}`);
       }
       if (offset + limit < totalCount) {
         return fetchPage(offset + limit);
@@ -45,7 +50,10 @@ function fetchPage(offset) {
         console.log("Datos guardados en caché:", cachedData);
       }
     })
-    .catch(error => console.error('Error al obtener les dades:', error));
+    .catch(error => {
+      console.error('Error al obtener les dades:', error);
+      console.error('URL que falló:', apiUrl);
+    });
 }
 
 // Convierte un string "HH:MM" a un objeto Date con la fecha de hoy
@@ -75,12 +83,19 @@ function parsearParadas(paradasStr) {
 
 // Realiza el matching y guarda los resultados en localStorage
 function processMatching() {
+  console.group('Process Matching');
+  console.log('Iniciando matching con:', {
+    'Total trenes API': allResults.length,
+    'Total itinerarios': itinerarios.length
+  });
+  
   const resultados = [];
   const ahora = new Date();
   const idsProcesados = new Set();
   
   if (itinerarios.length === 0) {
     console.warn("Carregar el fitxer JSON d'itineraris");
+    console.groupEnd();
     return;
   }
   
@@ -158,7 +173,10 @@ function processMatching() {
     console.warn("No se encontraron coincidencias");
   } else {
     console.log("Resultados de matching:", resultados);
+    console.table(resultados); // Muestra los resultados en formato tabla
   }
+  
+  console.groupEnd();
   
   // Modificar el guardado en localStorage para incluir ambos IDs
   const trenes = resultados.map(res => ({
