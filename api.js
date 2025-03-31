@@ -21,17 +21,17 @@ function fetchPage(offset) {
   const now = new Date().getTime();
   if (cachedData && lastCacheTime && (now - lastCacheTime < cacheDurationMs)) {
     allResults = cachedData;
-    console.log("Usando datos en caché:", allResults);
+console.log("Usando datos en caché:", allResults);
     processMatching();
     return Promise.resolve();
   }
   const apiUrl = `https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/posicionament-dels-trens/records?limit=${limit}&offset=${offset}`;
-  console.log("Consultando API:", apiUrl);
+console.log("Consultando API:", apiUrl);
   
   return fetch(apiUrl)
     .then(response => response.json())
     .then(data => {
-      console.log("Respuesta de la API:", data);
+console.log("Respuesta de la API:", data);
       if (offset === 0 && data.total_count) {
         totalCount = data.total_count;
         apiAccessTime = new Date();
@@ -39,7 +39,7 @@ function fetchPage(offset) {
       }
       if (data.results && Array.isArray(data.results)) {
         allResults = allResults.concat(data.results);
-        console.log(`Registros acumulados: ${allResults.length}`);
+console.log(`Registros acumulados: ${allResults.length}`);
       }
       if (offset + limit < totalCount) {
         return fetchPage(offset + limit);
@@ -51,7 +51,7 @@ function fetchPage(offset) {
       }
     })
     .catch(error => {
-      console.error('Error al obtener les dades:', error);
+console.error('Error al obtener les dades:', error);
       console.error('URL que falló:', apiUrl);
     });
 }
@@ -83,7 +83,7 @@ function parsearParadas(paradasStr) {
 
 // Realiza el matching y guarda los resultados en localStorage
 function processMatching() {
-  console.group('Process Matching');
+console.group('Process Matching');
   console.log('Iniciando matching con:', {
     'Total trenes API': allResults.length,
     'Total itinerarios': itinerarios.length
@@ -95,7 +95,7 @@ function processMatching() {
   
   if (itinerarios.length === 0) {
     console.warn("Carregar el fitxer JSON d'itineraris");
-    console.groupEnd();
+console.groupEnd();
     return;
   }
   
@@ -173,9 +173,9 @@ function processMatching() {
     console.warn("No se encontraron coincidencias");
   } else {
     console.log("Resultados de matching:", resultados);
-    console.table(resultados); // Muestra los resultados en formato tabla
+console.table(resultados); // Muestra los resultados en formato tabla
   }
-  
+
   console.groupEnd();
   
   // Modificar el guardado en localStorage para incluir ambos IDs
