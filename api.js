@@ -162,11 +162,20 @@ function processMatching() {
     if (!idsProcesados.has(record.id) && record.lin) {
       const upperLin = record.lin.toUpperCase();
       if (lineasForzadas.some(code => upperLin.startsWith(code))) {
+        // Extraer la próxima estación del campo properes_parades
+        const paradasAPI = parsearParadas(record.properes_parades);
+        const properaEstacio = paradasAPI.length > 0 ? paradasAPI[0] : null;
+  
+        // Determinar el estado del tren
+        const estado = record.estacionat_a ? "Estacionat" : "Circulant";
+  
         trenesSinItinerario.push({
           "ID Tren": record.id,
           "Línea": record.lin,
           "Dirección": record.dir,
-          "Estado": "Sin asignar"
+          "Estado": "Sin asignar",
+          "Propera Estació": properaEstacio,
+          "Estado Tren": estado
         });
       }
     }
