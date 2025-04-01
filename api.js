@@ -99,8 +99,10 @@ function processMatching() {
   });
   
   const resultados = [];
+  const trenesSinItinerario = [];
   const ahora = new Date();
   const idsProcesados = new Set();
+  const lineasForzadas = ["R5", "R6", "S3", "S4", "S8", "S9", "L8"];
   
   if (itinerarios.length === 0) {
     console.warn("Carregar el fitxer JSON d'itineraris");
@@ -122,30 +124,7 @@ function processMatching() {
         if (idsProcesados.has(record.id)) {
           continue;
         }
-        if (record.estacionat_a && itin.hasOwnProperty(record.estacionat_a)) {
-          const horaProgramadaStr = itin[record.estacionat_a];
-          try {
-            const horaProgramada = convertirHora(horaProgramadaStr);
-            if (Math.abs(ahora - horaProgramada) <= toleranciaMs) {
-              resultados.push({
-                "ID Tren": `${record.id} (${itin.Tren})`, // Mantener para compatibilidad
-                "API_ID": record.id,           // Nuevo campo
-                "Tren_Numero": itin.Tren,      // Nuevo campo
-                "Línea": record.lin,
-                "Dirección": record.dir,
-                "Estación": record.estacionat_a,
-                "Hora Programada": horaProgramadaStr,
-                "Estado": "Estacionat",
-                itinerary: itin
-              });
-              idsProcesados.add(record.id);
-              matchEncontrado = true;
-              continue;
-            }
-          } catch (error) {
-            console.error("Error al convertir la hora:", error);
-          }
-        }
+        
         const paradasAPI = parsearParadas(record.properes_parades);
         for (let j = 0; j < paradasAPI.length && !matchEncontrado; j++) {
           const parada = paradasAPI[j];
@@ -155,9 +134,9 @@ function processMatching() {
               const horaProgramada = convertirHora(horaProgramadaStr);
               if (Math.abs(ahora - horaProgramada) <= toleranciaMs) {
                 resultados.push({
-                  "ID Tren": `${record.id} (${itin.Tren})`, // Mantener para compatibilidad
-                  "API_ID": record.id,           // Nuevo campo
-                  "Tren_Numero": itin.Tren,      // Nuevo campo
+                  "ID Tren": `${record.id} (${itin.Tren})`,
+                  "API_ID": record.id,
+                  "Tren_Numero": itin.Tren,
                   "Línea": record.lin,
                   "Dirección": record.dir,
                   "Estación": parada,
@@ -178,19 +157,38 @@ function processMatching() {
     }
   });
   
+  // Identificar trenes sin itinerario asignado para las líneas forzadas
+  allResults.forEach(record => {
+    if (!idsProcesados.has(record.id) && record.lin) {
+      const upperLin = record.lin.toUpperCase();
+      if (lineasForzadas.some(code => upperLin.startsWith(code))) {
+        trenesSinItinerario.push({
+          "ID Tren": record.id,
+          "Línea": record.lin,
+          "Dirección": record.dir,
+          "Estado": "Sin asignar"
+        });
+      }
+    }
+  });
+  
   if (resultados.length === 0) {
     console.warn("No se encontraron coincidencias");
   } else {
     console.log("Resultados de matching:", resultados);
   }
-
+  
+  if (trenesSinItinerario.length > 0) {
+    console.warn("Trenes sin itinerario asignado:", trenesSinItinerario);
+  }
+  
   console.groupEnd();
   
-  // Modificar el guardado en localStorage para incluir ambos IDs
+  // Guardar resultados en localStorage
   const trenes = resultados.map(res => ({
     nombre: res.Tren_Numero,
     id: res.API_ID,
-    id_completo: res["ID Tren"]  // Mantener el formato original también
+    id_completo: res["ID Tren"]
   }));
   
   localStorage.setItem("trenes", JSON.stringify(trenes));
