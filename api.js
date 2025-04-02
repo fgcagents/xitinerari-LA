@@ -206,8 +206,6 @@ function processMatching() {
 
 // Función para refrescar los datos
 function refreshData() {
-  cachedData = null;
-  lastCacheTime = null;
   allResults = [];
   if (GLOBAL_JSON_DATA) {
     itinerarios = GLOBAL_JSON_DATA;
@@ -219,7 +217,7 @@ function refreshData() {
 }
 
 // Observer para detectar cambios en GLOBAL_JSON_DATA
-let lastJsonValue = null;
+/*let lastJsonValue = null;
 setInterval(() => {
     if (GLOBAL_JSON_DATA !== lastJsonValue) {
         lastJsonValue = GLOBAL_JSON_DATA;
@@ -230,7 +228,7 @@ setInterval(() => {
         }
     }
 }, 1000);
-
+*/
 // Manejar la carga del fichero de itinerarios
 /*document.getElementById('itinerarioFile').addEventListener('change', function(event) {
   const file = event.target.files[0];
