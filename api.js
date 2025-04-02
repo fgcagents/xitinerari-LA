@@ -6,8 +6,8 @@ let apiAccessTime = null;
 let itinerarios = [];
 let cachedData = null;
 let lastCacheTime = null;
-const toleranciaMs = 5 * 60 * 1000; // 5 minutos
-const cacheDurationMs = 60 * 1000; // 1 minuto
+const toleranciaMs = 10 * 60 * 1000; // 10 minutos
+const cacheDurationMs = 30 * 1000; // 30 segons
 
 // Función para formatear una fecha en "HH:MM"
 function formatTime(date) {
