@@ -221,15 +221,6 @@ function processMatching() {
 
   console.groupEnd();
 
-  
-  // Guardar resultados en localStorage
-  const trenes = resultados.map(res => ({
-    nombre: res.Tren_Numero,
-    id: res.API_ID,
-    id_completo: res["ID Tren"]
-  }));
-  
-
 }
 
 // Función para refrescar los datos
